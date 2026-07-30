@@ -37,20 +37,40 @@
       </div>
     </div>
 
-    <div class="header-actions">
+    <!-- Mobile: Always-visible party action buttons -->
+    <div class="header-party-actions">
+      <button class="btn btn-party-host" id="hostPartyBtn">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>🎉 Host a Party</span>
+      </button>
+      <button class="btn btn-party-join" id="joinPartyBtn">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        <span>🎮 Join a Party</span>
+      </button>
+
+      <!-- Hamburger for secondary controls (view modes, download, print) -->
+      <button class="hamburger-btn" id="mobileMenuToggleBtn" title="More options" aria-label="Open menu">
+        <span class="ham-bar"></span>
+        <span class="ham-bar"></span>
+        <span class="ham-bar"></span>
+      </button>
+    </div>
+
+    <!-- Secondary Controls (collapsible on mobile, always visible on desktop) -->
+    <div class="header-actions" id="headerSecondaryActions">
       <!-- View Modes -->
       <div class="segmented-control" id="viewModeControl">
         <button class="segmented-btn active" data-view="desk">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-          Blueprint Desk View
+          Blueprint
         </button>
         <button class="segmented-btn" data-view="grid">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          Card Gallery
+          Gallery
         </button>
         <button class="segmented-btn" data-view="deck">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 2h6M2 9v6"/></svg>
-          Flashcard Deck Mode
+          Flashcards
         </button>
       </div>
 
@@ -58,40 +78,28 @@
       <div class="dropdown-wrap">
         <button class="btn btn-primary" id="downloadBtn">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Download Cards
+          Download
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="dropdown-menu" id="downloadDropdown">
           <button class="dropdown-item dropdown-item-highlight" id="downloadPdfBtn">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M10 12h4M10 16h4"/></svg>
-            Download Cards as PDF Document (.pdf)
+            Download as PDF (.pdf)
           </button>
           <button class="dropdown-item" id="downloadAllPngBtn">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            Download All Cards as PNG Images
+            Download as PNG Images
           </button>
           <button class="dropdown-item" id="downloadOfflineHtmlBtn">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            Save Standalone Printable (.html)
+            Save Standalone (.html)
           </button>
         </div>
       </div>
 
-      <div class="party-nav-group">
-        <button class="btn btn-party-host" id="hostPartyBtn">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          <span>🎉 Host a Party</span>
-        </button>
-
-        <button class="btn btn-party-join" id="joinPartyBtn">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-          <span>🎮 Join a Party</span>
-        </button>
-      </div>
-
       <button class="btn btn-secondary" id="printBtn">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-        Print PDF
+        Print
       </button>
     </div>
   </header>

@@ -2072,3 +2072,33 @@ if (document.readyState === 'loading') {
 } else {
   PartyManager.init();
 }
+
+// ===== MOBILE HAMBURGER MENU TOGGLE =====
+(function setupHamburgerMenu() {
+  function init() {
+    const toggleBtn = document.getElementById('mobileMenuToggleBtn');
+    const secondaryNav = document.getElementById('headerSecondaryActions');
+    if (!toggleBtn || !secondaryNav) return;
+
+    toggleBtn.addEventListener('click', () => {
+      const isOpen = secondaryNav.classList.toggle('mobile-open');
+      toggleBtn.classList.toggle('open', isOpen);
+      toggleBtn.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    // Close secondary nav when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!toggleBtn.contains(e.target) && !secondaryNav.contains(e.target)) {
+        secondaryNav.classList.remove('mobile-open');
+        toggleBtn.classList.remove('open');
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+
