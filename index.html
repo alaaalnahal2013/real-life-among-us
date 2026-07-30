@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Among Us Real-Life Flashcards & Prototype Set</title>
+  
+  <!-- Google Fonts for Hand-Drawn & Blueprint Aesthetic -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Caveat:wght@600;700&family=Outfit:wght@400;600;800;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- jsPDF Library for Client-Side PDF Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- PeerJS Library for Public Internet Multi-Device WebRTC P2P Multiplayer -->
+  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+  <!-- Top Navigation & Controls Bar -->
+  <header class="app-header">
+    <div class="header-brand">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2C8 2 5 5 5 10v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9c0-5-3-8-7-8z"/>
+          <ellipse cx="14" cy="9" rx="4" ry="2.5" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </div>
+      <div>
+        <h1 style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+          AMONG US REAL-LIFE GAME SET
+          <span style="font-size:0.75rem; background:#2ecc71; color:#000; font-weight:800; padding:2px 8px; border-radius:12px; font-family:var(--font-headline); letter-spacing:0.5px;">🌐 100% FREE PUBLIC APP</span>
+        </h1>
+        <p class="subtitle">Hand-Drawn Physical Card Prototype • Multi-Device Public Play • 100% Free & Open to All</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- View Modes -->
+      <div class="segmented-control" id="viewModeControl">
+        <button class="segmented-btn active" data-view="desk">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          Blueprint Desk View
+        </button>
+        <button class="segmented-btn" data-view="grid">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Card Gallery
+        </button>
+        <button class="segmented-btn" data-view="deck">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 2h6M2 9v6"/></svg>
+          Flashcard Deck Mode
+        </button>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="dropdown-wrap">
+        <button class="btn btn-primary" id="downloadBtn">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download Cards
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="dropdown-menu" id="downloadDropdown">
+          <button class="dropdown-item dropdown-item-highlight" id="downloadPdfBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M10 12h4M10 16h4"/></svg>
+            Download Cards as PDF Document (.pdf)
+          </button>
+          <button class="dropdown-item" id="downloadAllPngBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Download All Cards as PNG Images
+          </button>
+          <button class="dropdown-item" id="downloadOfflineHtmlBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Save Standalone Printable (.html)
+          </button>
+        </div>
+      </div>
+
+      <div class="party-nav-group">
+        <button class="btn btn-party-host" id="hostPartyBtn">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>🎉 Host a Party</span>
+        </button>
+
+        <button class="btn btn-party-join" id="joinPartyBtn">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          <span>🎮 Join a Party</span>
+        </button>
+      </div>
+
+      <button class="btn btn-secondary" id="printBtn">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print PDF
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="app-main">
+
+    <!-- DESK BLUEPRINT VIEW (Matching the uploaded image prototype layout) -->
+    <section id="deskView" class="view-section active">
+      <div class="desk-surface">
+        <div class="paper-blueprint">
+          
+          <!-- Blueprint Handwritten Header & Notes -->
+          <div class="blueprint-header-text">
+            <span class="bp-title">PROTO V2.0 - PRINT TEST 1</span>
+            <span class="bp-note">REMOVE CARD 2: [Done]</span>
+            <span class="bp-note">ADD 5 MORE CREWMATES: [Done, total 10 Crewmates + 1 Imposter]</span>
+          </div>
+
+          <!-- Section Grid Container matching the image layout -->
+          <div class="blueprint-layout-grid">
+            
+            <!-- Left Column: Game Rules & Tasks Preview -->
+            <div class="bp-col left-col">
+              
+              <!-- Game Rules Card (C1) -->
+              <div class="bp-slot slot-rules">
+                <span class="slot-label label-top">C1</span>
+                <div class="card card-rules parchment-theme" id="rulesCardSlot">
+                  <div class="card-inner">
+                    <h2 class="card-heading">GAME RULES</h2>
+                    <div class="rules-body">
+                      <p><strong>THE WAY THE IMPOSTER KILLS THE CREWMATES IS BY A BRIEF TOUCH ON THE SHOULDER AND BETWEEN EACH KILL IS 40 SECS.</strong></p>
+                      <p>YOU CANNOT SCREAM OR SAY ANYTHING ONCE THE IMPOSTER HAS KILLED YOU.</p>
+                      <p>YOU CANNOT SPEAK DURING THE ROUND.</p>
+                      <p>IF YOU ARE KILLED, SIT DOWN AND DO NOT MAKE A SOUND.</p>
+                      <div class="rules-footer">GOOD LUCK.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Task Cards Row 1 (T1, T2, T3) -->
+              <div class="bp-tasks-row">
+                <div class="bp-slot" data-card-id="task-11">
+                  <div class="card card-task parchment-theme">
+                    <div class="card-inner">
+                      <div class="card-type-label">TASK:</div>
+                      <h3 class="task-title">BOOK ARRANGEMENT</h3>
+                      <p class="task-desc">Rearrange 3 books on the shelf by size.</p>
+                      <div class="card-bottom-gfx">
+                        <svg class="task-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                        <div class="card-bar-ticks"><span class="tick active"></span><span class="tick active"></span><span class="tick active"></span><span class="tick"></span><span class="tick"></span></div>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="slot-label">T1</span>
+                </div>
+
+                <div class="bp-slot" data-card-id="task-8">
+                  <div class="card card-task parchment-theme">
+                    <div class="card-inner">
+                      <div class="card-type-label">TASK:</div>
+                      <h3 class="task-title">NUMBER ORDER</h3>
+                      <p class="task-desc">Arrange 5 numbered slips of paper on the table from smallest to largest.</p>
+                      <div class="card-bottom-gfx">
+                        <svg class="task-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h2v8H7M15 8h2v8h-2"/></svg>
+                        <div class="card-bar-ticks"><span class="tick active"></span><span class="tick active"></span><span class="tick active"></span><span class="tick active"></span><span class="tick"></span></div>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="slot-label">T2</span>
+                </div>
+
+                <div class="bp-slot" data-card-id="task-12">
+                  <div class="card card-task parchment-theme">
+                    <div class="card-inner">
+                      <div class="card-type-label">TASK:</div>
+                      <h3 class="task-title">TIE THE KNOT</h3>
+                      <p class="task-desc">Tie a small rope or shawl in a certain way and untie it.</p>
+                      <div class="card-bottom-gfx">
+                        <svg class="task-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="6"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+                        <div class="card-bar-ticks"><span class="tick active"></span><span class="tick active"></span><span class="tick active"></span><span class="tick active"></span><span class="tick"></span></div>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="slot-label">T3</span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Right Column: Teal Role Cards & Extra Info Card -->
+            <div class="bp-col right-col">
+
+              <div class="bp-roles-grid">
+                <!-- Row 1 Roles -->
+                <div class="bp-slot" data-card-id="role-crewmate-1">
+                  <div class="card card-role teal-theme">
+                    <div class="card-inner">
+                      <h3 class="role-title">CREWMATE</h3>
+                      <p class="role-desc">YOUR IDENTITY: CREWMATE.<br>COMPLETE TASKS TO WIN. HELP IDENTIFY THE IMPOSTER.</p>
+                      <p class="role-subnote">Do not reveal your identity. Your color is NOT your identifier.</p>
+                      <div class="helmet-icon-wrap">
+                        <svg class="helmet-svg" viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="3">
+                          <path d="M18 50 V 22 C 18 12, 42 12, 42 22 V 50 Z"/>
+                          <ellipse cx="30" cy="24" rx="9" ry="6" stroke-width="3" fill="#aee0d6"/>
+                          <path d="M14 30 V 46 C 14 48, 18 48, 18 46 V 30 Z"/>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="slot-label label-side">C1</span>
+                </div>
+
+                <div class="bp-slot" data-card-id="role-crewmate-2">
+                  <div class="card card-role teal-theme">
+                    <div class="card-inner">
+                      <h3 class="role-title">CREWMATE</h3>
+                      <p class="role-desc">YOUR IDENTITY: CREWMATE.<br>COMPLETE TASKS TO WIN. HELP IDENTIFY THE IMPOSTER.</p>
+                      <p class="role-subnote">Do not reveal your identity. Your color is NOT your identifier.</p>
+                      <div class="helmet-icon-wrap">
+                        <svg class="helmet-svg" viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="3">
+                          <path d="M18 50 V 22 C 18 12, 42 12, 42 22 V 50 Z"/>
+                          <ellipse cx="30" cy="24" rx="9" ry="6" stroke-width="3" fill="#aee0d6"/>
+                          <path d="M14 30 V 46 C 14 48, 18 48, 18 46 V 30 Z"/>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="bp-slot" data-card-id="role-crewmate-3">
+                  <div class="card card-role teal-theme">
+                    <div class="card-inner">
+                      <h3 class="role-title">CREWMATE</h3>
+                      <p class="role-desc">YOUR IDENTITY: CREWMATE.<br>COMPLETE TASKS TO WIN. HELP IDENTIFY THE IMPOSTER.</p>
+                      <p class="role-subnote">Do not reveal your identity. Your color is NOT your identifier.</p>
+                      <div class="helmet-icon-wrap">
+                        <svg class="helmet-svg" viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="3">
+                          <path d="M18 50 V 22 C 18 12, 42 12, 42 22 V 50 Z"/>
+                          <ellipse cx="30" cy="24" rx="9" ry="6" stroke-width="3" fill="#aee0d6"/>
+                          <path d="M14 30 V 46 C 14 48, 18 48, 18 46 V 30 Z"/>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Row 2 Roles -->
+                <div class="bp-slot" data-card-id="role-crewmate-4">
+                  <div class="card card-role teal-theme">
+                    <div class="card-inner">
+                      <h3 class="role-title">CREWMATE</h3>
+                      <p class="role-desc">YOUR IDENTITY: CREWMATE.<br>COMPLETE TASKS TO WIN. HELP IDENTIFY THE IMPOSTER.</p>
+                      <p class="role-subnote">Do not reveal your identity. Your color is NOT your identifier.</p>
+                      <div class="helmet-icon-wrap">
+                        <svg class="helmet-svg" viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="3">
+                          <path d="M18 50 V 22 C 18 12, 42 12, 42 22 V 50 Z"/>
+                          <ellipse cx="30" cy="24" rx="9" ry="6" stroke-width="3" fill="#aee0d6"/>
+                          <path d="M14 30 V 46 C 14 48, 18 48, 18 46 V 30 Z"/>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="slot-label label-side">C5</span>
+                </div>
+
+                <div class="bp-slot" data-card-id="role-crewmate-5">
+                  <div class="card card-role teal-theme">
+                    <div class="card-inner">
+                      <h3 class="role-title">CREWMATE</h3>
+                      <p class="role-desc">YOUR IDENTITY: CREWMATE.<br>COMPLETE TASKS TO WIN. HELP IDENTIFY THE IMPOSTER.</p>
+                      <p class="role-subnote">Do not reveal your identity. Your color is NOT your identifier.</p>
+                      <div class="helmet-icon-wrap">
+                        <svg class="helmet-svg" viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="3">
+                          <path d="M18 50 V 22 C 18 12, 42 12, 42 22 V 50 Z"/>
+                          <ellipse cx="30" cy="24" rx="9" ry="6" stroke-width="3" fill="#aee0d6"/>
+                          <path d="M14 30 V 46 C 14 48, 18 48, 18 46 V 30 Z"/>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="bp-slot" data-card-id="role-imposter-1">
+                  <div class="card card-role teal-theme card-imposter">
+                    <div class="card-inner">
+                      <h3 class="role-title">IMPOSTER</h3>
+                      <p class="role-desc">YOUR IDENTITY: IMPOSTER.<br>ELIMINATE CREWMATES TO WIN. BLEND IN.</p>
+                      <p class="role-subnote">Keep your identity secret. Touch shoulder to kill (40s cooldown).</p>
+                      <div class="helmet-icon-wrap">
+                        <svg class="helmet-svg imposter-helmet" viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="3">
+                          <path d="M18 50 V 22 C 18 12, 42 12, 42 22 V 50 Z"/>
+                          <ellipse cx="30" cy="24" rx="9" ry="6" stroke-width="3" fill="#aee0d6"/>
+                          <path d="M14 30 V 46 C 14 48, 18 48, 18 46 V 30 Z"/>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="slot-label label-side">C7</span>
+                </div>
+
+                <!-- Row 3 Task Teal Variants & Extra Role -->
+                <div class="bp-slot" data-card-id="task-12-teal">
+                  <div class="card card-task teal-theme">
+                    <div class="card-inner">
+                      <div class="card-type-label">TASK:</div>
+                      <h3 class="task-title">TIE THE KNOT</h3>
+                      <p class="task-desc">Tie a small rope or shawl in a certain way and untie it.</p>
+                      <div class="card-bottom-gfx">
+                        <div class="card-bar-ticks"><span class="tick active"></span><span class="tick active"></span><span class="tick active"></span><span class="tick active"></span><span class="tick"></span></div>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="slot-label label-side">C7</span>
+                </div>
+
+                <div class="bp-slot" data-card-id="task-4-teal">
+                  <div class="card card-task teal-theme">
+                    <div class="card-inner">
+                      <div class="card-type-label">TASK:</div>
+                      <h3 class="task-title">TARGETING</h3>
+                      <p class="task-desc">Throw a small ball or object into the laundry basket from 3 steps.</p>
+                      <div class="card-bottom-gfx">
+                        <div class="card-bar-ticks"><span class="tick active"></span><span class="tick active"></span><span class="tick active"></span><span class="tick"></span><span class="tick"></span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="bp-slot" data-card-id="role-imposter-2">
+                  <div class="card card-role teal-theme card-imposter">
+                    <div class="card-inner">
+                      <h3 class="role-title">IMPOSTER</h3>
+                      <p class="role-desc">YOUR IDENTITY: IMPOSTER.<br>ELIMINATE CREWMATES TO WIN. BLEND IN.</p>
+                      <p class="role-subnote">Keep your identity secret.</p>
+                      <div class="helmet-icon-wrap">
+                        <svg class="helmet-svg imposter-helmet" viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="3">
+                          <path d="M18 50 V 22 C 18 12, 42 12, 42 22 V 50 Z"/>
+                          <ellipse cx="30" cy="24" rx="9" ry="6" stroke-width="3" fill="#aee0d6"/>
+                          <path d="M14 30 V 46 C 14 48, 18 48, 18 46 V 30 Z"/>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Side Info Card (I1) -->
+              <div class="bp-side-note-card teal-theme">
+                <p><strong>NO PLAYER-IDENTIFYING COLORS ON CARDS.</strong></p>
+                <p>EACH CREWMATE GETS ASSIGNED 3-4 TASKS.</p>
+                <p>EVENT CONSISTS OF 3 ROUNDS.</p>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Bottom Footer Text on Blueprint -->
+          <div class="blueprint-footer-title">
+            COMPLETE PHYSICAL PROTOTYPE SET - ALL UNIQUE DESIGNS (10 CREWMATES, 1 IMPOSTER, 12 TASKS, RULES)
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- GRID GALLERY VIEW (Browsing all 24+ cards cleanly) -->
+    <section id="gridView" class="view-section">
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <span class="filter-label">Filter Cards:</span>
+        <button class="filter-chip active" data-filter="all">All Cards (<span id="countAll">0</span>)</button>
+        <button class="filter-chip" data-filter="role">Roles (10 Crewmates + 1 Imposter)</button>
+        <button class="filter-chip" data-filter="task">Tasks (12 Cards)</button>
+        <button class="filter-chip" data-filter="rules">Rules</button>
+      </div>
+
+      <!-- Card Grid -->
+      <div class="cards-grid" id="cardsGridContainer">
+        <!-- Rendered dynamically via JavaScript -->
+      </div>
+    </section>
+
+    <!-- FLASHCARD DECK MODE (Interactive single flashcard with 3D flip & navigation) -->
+    <section id="deckView" class="view-section">
+      <div class="deck-container">
+        
+        <div class="deck-header">
+          <button class="btn btn-secondary" id="deckPrevBtn">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+            Previous
+          </button>
+
+          <div class="deck-counter">
+            Card <span id="deckCurrentIdx">1</span> of <span id="deckTotalCount">24</span>
+            <span class="deck-card-type-badge" id="deckCardBadge">CREWMATE ROLE</span>
+          </div>
+
+          <button class="btn btn-secondary" id="deckNextBtn">
+            Next
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+        </div>
+
+        <!-- 3D Flippable Flashcard -->
+        <div class="flashcard-stage">
+          <div class="flip-card-wrapper" id="flipCardWrapper">
+            <div class="flip-card-inner" id="flipCardInner">
+              <!-- Front Face -->
+              <div class="flip-card-front" id="deckCardFront">
+                <!-- Dynamic Card Front Content -->
+              </div>
+              <!-- Back Face -->
+              <div class="flip-card-back" id="deckCardBack">
+                <div class="card-back-pattern">
+                  <div class="card-back-logo">
+                    <svg viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="3" width="80" height="80">
+                      <path d="M18 50 V 22 C 18 12, 42 12, 42 22 V 50 Z"/>
+                      <ellipse cx="30" cy="24" rx="9" ry="6" stroke-width="3" fill="#ffffff22"/>
+                    </svg>
+                    <span>AMONG US</span>
+                    <small>REAL LIFE EDITION</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="deck-action-row">
+            <button class="btn btn-secondary" id="downloadCurrentCardBtn">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download This Card (PNG)
+            </button>
+            <div class="flip-instruction">💡 Click card or press <strong>Spacebar</strong> to flip front/back</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- PRINT LAYOUT SHEET (Visible only during printing or export) -->
+  <div id="printSheet" class="print-sheet-container">
+    <div class="print-page-header">
+      <h2>AMONG US REAL-LIFE GAME PRINTABLE FLASHCARD SET</h2>
+      <p>Print on 100% scale A4 or Letter paper. Cut along dotted guidelines.</p>
+    </div>
+    <div class="print-cards-grid" id="printCardsGrid">
+      <!-- Generated via JavaScript for clean pagination -->
+    </div>
+  </div>
+
+  <!-- Interactive Inspection Modal -->
+  <div class="modal-overlay" id="cardModal">
+    <div class="modal-content">
+      <button class="modal-close" id="modalCloseBtn">&times;</button>
+      <div id="modalCardTarget"></div>
+    </div>
+  </div>
+
+  <!-- Host a Party Modal / Window -->
+  <div class="modal-overlay" id="partyModal">
+    <div class="modal-content party-modal-content">
+      <button class="modal-close" id="partyModalCloseBtn">&times;</button>
+      
+      <!-- STEP 1: PARTY SETUP & LOBBY -->
+      <div id="partySetupStep" class="party-step active">
+        <div class="party-header">
+          <div class="party-badge">HOST LOBBY</div>
+          <h2>PLAY WITH FRIENDS</h2>
+          <p>Setup player names, roles & tasks for your real-life Among Us game!</p>
+        </div>
+
+        <div class="party-room-code-box">
+          <span class="room-code-label">ROOM CODE:</span>
+          <span class="room-code-val" id="roomCodeDisplay">AMONG-8294</span>
+          <button class="btn-icon" id="regenCodeBtn" title="New Room Code">🔄</button>
+        </div>
+
+        <div class="party-card-panel" style="margin-bottom: 1.25rem;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label for="hostNameInput" style="font-weight:bold; color:#f1c40f;">👑 Host Name (Your Player Name):</label>
+            <input type="text" id="hostNameInput" placeholder="Enter your host name..." maxlength="15" class="party-input input-lg">
+          </div>
+        </div>
+
+        <div class="party-grid-layout">
+          <!-- Left: Game Settings -->
+          <div class="party-card-panel">
+            <h3>⚙️ Game Settings</h3>
+            <div class="form-group">
+              <label for="imposterCountSelect">Number of Imposters:</label>
+              <select id="imposterCountSelect" class="party-select">
+                <option value="1" selected>1 Imposter (Min 4 players)</option>
+                <option value="2">2 Imposters (Min 6 players)</option>
+                <option value="3">3 Imposters (Min 8 players)</option>
+                <option value="4">4 Imposters (Min 10 players)</option>
+                <option value="5">5 Imposters (Min 12 players)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="playerCountSelect">Total Number of Players:</label>
+              <select id="playerCountSelect" class="party-select">
+                <option value="4" selected>4 Players (Standard 1 Imposter)</option>
+                <option value="5">5 Players</option>
+                <option value="6">6 Players (Supports 2 Imposters)</option>
+                <option value="7">7 Players</option>
+                <option value="8">8 Players (Supports 3 Imposters)</option>
+                <option value="9">9 Players</option>
+                <option value="10">10 Players (Supports 4 Imposters)</option>
+                <option value="11">11 Players</option>
+                <option value="12">12 Players (Supports 5 Imposters)</option>
+                <option value="13">13 Players</option>
+                <option value="14">14 Players (Maximum Party)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="killCooldownSelect">Kill Cooldown Timer:</label>
+              <select id="killCooldownSelect" class="party-select">
+                <option value="30">30 Seconds</option>
+                <option value="40" selected>40 Seconds (Standard)</option>
+                <option value="60">60 Seconds</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="tasksPerPlayerSelect">Tasks Per Crewmate:</label>
+              <select id="tasksPerPlayerSelect" class="party-select">
+                <option value="2">2 Tasks per player</option>
+                <option value="3" selected>3 Tasks per player (Standard)</option>
+                <option value="4">4 Tasks per player</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Right: Players List -->
+          <div class="party-card-panel">
+            <div class="panel-header-row">
+              <h3>👥 Players (<span id="playerCountBadge">0</span>)</h3>
+              <small class="note-text">Min 4, Max 14</small>
+            </div>
+            <div class="player-input-row">
+              <input type="text" id="newPlayerNameInput" placeholder="Enter player name..." maxlength="15" class="party-input">
+              <button class="btn btn-secondary" id="addPlayerBtn">+ Add</button>
+            </div>
+            <div class="players-chips-list" id="playersChipsList">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+
+        <div class="party-footer party-footer-row">
+          <button class="btn btn-exit-party" id="exitHostPartyBtn">
+            🚪 Exit
+          </button>
+          <button class="btn btn-primary btn-lg btn-glow" id="startGameDealBtn">
+            🚀 Deal Cards & Start Secret Pass-and-Play
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 2: SECRET PASS-AND-PLAY ROLE REVEAL -->
+      <div id="partyRevealStep" class="party-step">
+        <div class="party-header">
+          <div class="party-badge">SECRET PASS & PLAY</div>
+          <h2 id="revealPlayerTitle">Pass device to Player 1</h2>
+          <p>Keep your identity and tasks secret from other players!</p>
+        </div>
+
+        <!-- GAME HOST CONTROL BAR (Host switches player to roll) -->
+        <div class="host-control-bar" id="hostRevealControlBar">
+          <div style="display:flex; align-items:center; gap:0.6rem; color:#f1c40f; font-weight:bold;">
+            <span style="font-size:1.2rem;">👑</span>
+            <span>HOST CONTROL:</span>
+            <span id="hostPlayerProgressBadge" class="badge" style="background:#f1c40f; color:#111; font-size:0.85rem; font-weight:bold; padding:4px 10px; border-radius:12px;">Player 1 of 4</span>
+          </div>
+          <button class="btn btn-warning btn-md host-switch-next-btn" id="hostSwitchNextPlayerBtn" style="font-size:1rem; padding:0.5rem 1.2rem; cursor:pointer;">
+            👑 Host: Switch to Next Player ➔
+          </button>
+        </div>
+
+        <div class="secret-curtain-wrap" id="secretCurtain">
+          <div class="curtain-front" id="curtainFrontView">
+            <div class="lock-icon">🔒</div>
+            <h3 id="curtainPlayerName">Target Player Name</h3>
+            <p>Make sure nobody else is looking at the screen!</p>
+            <button class="btn btn-primary btn-lg" id="revealCardBtn">👁️ Tap to Reveal Secret Role & Tasks</button>
+          </div>
+          <div class="curtain-revealed" id="curtainRevealedContent" style="display:none;">
+            <!-- TOP PASS DEVICE ACTION BUTTON & BANNER -->
+            <button class="btn btn-success btn-lg confirm-memorized-top-btn" id="confirmMemorizedBtnTop" style="width:100%; margin-bottom:1rem; font-size:1.15rem; font-weight:bold; box-shadow:0 0 15px rgba(46,204,113,0.4);">
+              ✅ I've Memorized My Role ➔ Pass Device to Next Player
+            </button>
+            <div id="autoPassBanner" class="auto-pass-banner" style="background:rgba(46,204,113,0.15); border:1px solid rgba(46,204,113,0.4); border-radius:8px; padding:0.6rem 1rem; margin-bottom:1.25rem; color:#2ecc71; font-weight:600; text-align:center;">
+              📱 <span id="autoPassBannerText">Role & tasks rolled! Hand device to next person when ready.</span>
+            </div>
+
+            <!-- Player's secret role & tasks card preview -->
+            <div id="secretRoleCardContainer" class="secret-card-holder"></div>
+            <div class="secret-tasks-box" id="secretTasksBox">
+              <h4>YOUR ASSIGNED REAL-LIFE TASKS:</h4>
+              <ul id="secretTasksList" class="tasks-bullet-list"></ul>
+            </div>
+
+            <!-- BOTTOM PASS DEVICE ACTION BUTTON -->
+            <button class="btn btn-success btn-lg" id="confirmMemorizedBtn" style="width:100%; font-size:1.15rem; font-weight:bold;">
+              ✅ I've Memorized My Role ➔ Pass Device to Next Player
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: LIVE HOST DASHBOARD -->
+      <div id="partyDashboardStep" class="party-step">
+        <div class="dashboard-top-bar">
+          <div>
+            <span class="room-tag" id="dashRoomCode">ROOM: AMONG-8294</span>
+            <h2>🎮 LIVE GAME DASHBOARD</h2>
+          </div>
+          <div class="dash-top-actions">
+            <button class="btn btn-secondary btn-sm" id="shareRoomLinkBtnDash">🔗 Copy Room Link</button>
+            <button class="btn btn-secondary btn-sm" id="endGameResetBtn">Reset Game</button>
+            <button class="btn btn-exit-party btn-sm" id="exitHostDashBtn">🚪 Exit Room</button>
+          </div>
+        </div>
+
+        <!-- Emergency Meeting Overlay Alert inside Dashboard -->
+        <div id="emergencyMeetingOverlay" class="emergency-overlay" style="display:none;">
+          <div class="emergency-box">
+            <div class="siren-icon">🚨</div>
+            <h2>EMERGENCY MEETING / BODY REPORTED!</h2>
+            <p>All players gather for discussion and voting!</p>
+            <div class="timer-display-lg" id="discussionTimerDisplay">01:30</div>
+            <div class="emergency-controls">
+              <button class="btn btn-primary" id="startDiscussionTimerBtn">▶ Start Discussion Timer</button>
+              <button class="btn btn-secondary" id="pauseDiscussionTimerBtn">⏸ Pause</button>
+              <button class="btn btn-success" id="closeEmergencyBtn">Dismiss Meeting</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PHOTOREALISTIC 3D METALLIC EMERGENCY MEETING BUTTON FOR HOST (Matching Photo) -->
+        <div class="emergency-plate-container">
+          <div class="metallic-base-plate">
+            <div class="plate-screw screw-tl"></div>
+            <div class="plate-screw screw-tr"></div>
+            <div class="plate-screw screw-bl"></div>
+            <div class="plate-screw screw-br"></div>
+            
+            <div class="chrome-collar-ring">
+              <button class="photo-red-dome-btn" id="triggerEmergencyBtn" title="SLAM EMERGENCY BUTTON">
+                <span style="font-size: 2.2rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));">🚨</span>
+              </button>
+            </div>
+            
+            <div class="stencil-plate-text">EMERGENCY MEETING</div>
+            <div class="stencil-sub-text">DO NOT PRESS UNLESS EMERGENCY</div>
+          </div>
+        </div>
+
+        <!-- HOST PERSONAL SECRET ROOM VIEW (Confidential Player View for Host) -->
+        <div class="dash-card full-width-widget" id="hostPersonalCardWidget" style="margin-bottom:1.5rem; border:1px solid rgba(241,196,15,0.4); background:rgba(241,196,15,0.05);">
+          <div class="dash-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="color:#f1c40f;">👑 YOUR HOST SECRET ROLE & TASKS</h3>
+            <button class="btn btn-secondary btn-sm" id="toggleHostMonitorModeBtn">
+              🔒 Confidential Mode: Playing as Player
+            </button>
+          </div>
+          <div id="hostSecretCardHolder" style="margin-top:1rem;"></div>
+          <div id="hostPersonalTasksContainer" style="margin-top:1rem;"></div>
+        </div>
+
+        <!-- Live Dashboard Widgets Grid -->
+        <div class="dashboard-grid">
+          <!-- Widget 1: Kill Cooldown Timer -->
+          <div class="dash-card widget-cooldown">
+            <h3>⏱️ Imposter Kill Cooldown</h3>
+            <div class="cooldown-timer-wrap">
+              <div class="timer-circle" id="cooldownCircle">
+                <span class="timer-number" id="cooldownDisplay">40</span>
+                <span class="timer-sub">SECS</span>
+              </div>
+            </div>
+            <div class="timer-btn-row">
+              <button class="btn btn-primary btn-sm" id="startCooldownBtn">▶ Start Cooldown</button>
+              <button class="btn btn-secondary btn-sm" id="pauseCooldownBtn">⏸ Pause</button>
+              <button class="btn btn-secondary btn-sm" id="resetCooldownBtn">🔄 Reset</button>
+            </div>
+          </div>
+
+          <!-- Widget 2: Global Task Progress Bar -->
+          <div class="dash-card widget-tasks">
+            <div class="dash-card-header">
+              <h3>📋 Global Task Progress</h3>
+              <span class="progress-percent" id="taskPercentText">0%</span>
+            </div>
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" id="taskProgressBar" style="width: 0%;"></div>
+            </div>
+            <small class="task-hint">Crewmates win when task bar reaches 100%!</small>
+          </div>
+
+          <!-- Widget 3: Live Players & Tasks Management -->
+          <div class="dash-card widget-players full-width-widget">
+            <h3>👥 Player Status & Task Trackers</h3>
+            <p class="section-sub">Toggle player status (Alive / Eliminated) & check off completed tasks during gameplay.</p>
+            <div class="dash-players-grid" id="dashPlayersGrid">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 4: VICTORY BANNER OVERLAY -->
+      <div id="partyVictoryStep" class="party-step">
+        <div class="victory-banner-box" id="victoryBannerBox">
+          <div class="victory-icon" id="victoryIcon">🏆</div>
+          <h1 id="victoryTitle">CREWMATES VICTORY!</h1>
+          <p id="victoryReason">All tasks have been completed!</p>
+          <div class="victory-roles-summary" id="victoryRolesSummary"></div>
+          <div class="party-footer-row" style="justify-content:center; gap:1rem;">
+            <button class="btn btn-exit-party" id="exitVictoryBtn">🚪 Exit</button>
+            <button class="btn btn-primary btn-lg" id="playAgainBtn">🔄 Host Another Game</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- GLOBAL SMOOTH CARD REEL ROLLING STAGE -->
+  <div id="cardRollingStage" class="card-rolling-overlay" style="display:none;">
+    <div class="card-rolling-box">
+      <div class="reel-step-badge" id="reelStepBadge">🎲 ROLLING SECRET ROLE...</div>
+      
+      <!-- Animated Slot Machine Reel Frame -->
+      <div class="slot-reel-viewport">
+        <div class="slot-reel-card" id="slotReelCard">
+          <div class="reel-card-header" id="reelCardTypeTag">ROLE CARD</div>
+          <div class="reel-card-icon" id="reelCardIcon">❓</div>
+          <h3 class="reel-card-title" id="reelCardTitle">ROLLING...</h3>
+          <p class="reel-card-sub" id="reelCardSub">Shuffling Deck</p>
+        </div>
+      </div>
+
+      <h3 class="rolling-banner-text" id="rollingBannerText">🎲 SHUFFLING CARDS...</h3>
+      <p class="rolling-subtext" id="rollingSubtext">Drawing random luck for your player card!</p>
+      
+      <div class="reel-progress-dots" id="reelProgressDots"></div>
+    </div>
+  </div>
+
+  <!-- Join a Party Modal / Window -->
+  <div class="modal-overlay" id="joinPartyModal">
+    <div class="modal-content party-modal-content">
+      <button class="modal-close" id="joinModalCloseBtn">&times;</button>
+      
+      <!-- STEP 1: JOIN ENTRY FORM -->
+      <div id="joinSetupStep" class="party-step active">
+        <div class="party-header">
+          <div class="party-badge badge-join">PLAYER LOBBY</div>
+          <h2>JOIN A PARTY</h2>
+          <p>Enter the Room Code from the Host to join the game!</p>
+        </div>
+
+        <div class="party-join-card-panel">
+          <div class="form-group">
+            <label for="joinRoomCodeInput">Room Code (e.g. AMONG-8294 or 8294):</label>
+            <input type="text" id="joinRoomCodeInput" placeholder="AMONG-XXXX" maxlength="15" class="party-input input-lg uppercase-input" value="">
+          </div>
+          <div class="form-group">
+            <label for="joinPlayerNameInput">Your Name:</label>
+            <input type="text" id="joinPlayerNameInput" placeholder="Enter your player name..." maxlength="15" class="party-input input-lg">
+          </div>
+
+          <div class="party-footer-row">
+            <button class="btn btn-exit-party" id="exitJoinPartyBtn">
+              🚪 Exit
+            </button>
+            <button class="btn btn-party-join btn-lg btn-glow" id="submitJoinPartyBtn">
+              🎮 Join Room & Enter Lobby
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: JOINED WAITING LOBBY -->
+      <div id="joinWaitingStep" class="party-step">
+        <div class="party-header">
+          <div class="party-badge badge-join">WAITING AREA</div>
+          <h2>LOBBY WAITING ROOM</h2>
+          <p>You have joined the room! Waiting for Host to deal cards...</p>
+        </div>
+
+        <div class="waiting-lobby-card">
+          <div class="radar-spinner-wrap">
+            <div class="radar-pulse"></div>
+            <div class="radar-icon">📡</div>
+          </div>
+          <h3 id="waitingRoomTitle">ROOM: AMONG-XXXX</h3>
+          <div class="waiting-player-count">
+            JOINED PLAYERS: <span id="waitingPlayerCount">0</span> / <span id="waitingRequiredCount">4</span> NEEDED
+          </div>
+          <div class="threshold-notice" id="waitingThresholdNotice">
+            (Requires min 4 players for 1 Imposter | min 6 players for 2 Imposters)
+          </div>
+
+          <div class="waiting-players-chips" id="waitingPlayersChips">
+            <!-- Joined players list rendered via JS -->
+          </div>
+
+          <div class="party-footer-row" style="justify-content: center; margin-top: 2rem;">
+            <button class="btn btn-exit-party" id="exitWaitingBtn">
+              🚪 Leave Lobby
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: JOINED PLAYER DASHBOARD & SECRET ROLE CARD -->
+      <div id="joinDashboardStep" class="party-step">
+        <div class="dashboard-top-bar">
+          <div>
+            <span class="room-tag" id="joinRoomTag">ROOM: AMONG-8294</span>
+            <h2 id="joinPlayerHeader">PLAYER DASHBOARD</h2>
+          </div>
+          <div class="dash-top-actions">
+            <button class="btn btn-exit-party btn-sm" id="exitJoinDashBtn">
+              🚪 Exit Room
+            </button>
+          </div>
+        </div>
+
+        <!-- Emergency Meeting Overlay for Client Device -->
+        <div id="joinEmergencyMeetingOverlay" class="emergency-overlay" style="display:none;">
+          <div class="emergency-box">
+            <div class="siren-icon">🚨</div>
+            <h2>EMERGENCY MEETING / BODY REPORTED!</h2>
+            <p>All players gather for discussion and voting!</p>
+            <div class="timer-display-lg" id="joinDiscussionTimerDisplay">01:30</div>
+            <p style="color:#bdc3c7; font-size:0.9rem; margin-top:1rem;">Gather with other players in real life to discuss and vote!</p>
+          </div>
+        </div>
+
+        <!-- PHOTOREALISTIC 3D METALLIC EMERGENCY MEETING BUTTON (Matching Photo) -->
+        <div class="emergency-plate-container">
+          <div class="metallic-base-plate">
+            <div class="plate-screw screw-tl"></div>
+            <div class="plate-screw screw-tr"></div>
+            <div class="plate-screw screw-bl"></div>
+            <div class="plate-screw screw-br"></div>
+            
+            <div class="chrome-collar-ring">
+              <button class="photo-red-dome-btn" id="clientEmergencyBtn" title="SLAM EMERGENCY BUTTON">
+                <span style="font-size: 2.2rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));">🚨</span>
+              </button>
+            </div>
+            
+            <div class="stencil-plate-text">EMERGENCY MEETING</div>
+            <div class="stencil-sub-text">DO NOT PRESS UNLESS EMERGENCY</div>
+          </div>
+        </div>
+
+        <div class="join-player-view-container">
+          <!-- Secret Role Card Display -->
+          <div class="join-role-card-wrap">
+            <div id="joinSecretRoleHolder"></div>
+          </div>
+
+          <!-- Imposter Cooldown Widget (Rendered dynamically for Imposters) -->
+          <div class="dash-card widget-cooldown imposter-personal-widget" id="joinImposterCooldownWidget" style="display:none; width:100%; margin-bottom:1.5rem;">
+            <h3>🔪 IMPOSTER KILL COOLDOWN</h3>
+            <p class="section-sub">Manage your kill cooldown timer on your phone!</p>
+            <div class="cooldown-timer-wrap">
+              <div class="timer-circle" id="joinCooldownCircle">
+                <span class="timer-number" id="joinCooldownDisplay">40</span>
+                <span class="timer-sub">SECS</span>
+              </div>
+            </div>
+            <div class="timer-btn-row" style="justify-content:center; display:flex; gap:0.5rem;">
+              <button class="btn btn-primary btn-sm" id="joinStartCooldownBtn">▶ Start Cooldown</button>
+              <button class="btn btn-secondary btn-sm" id="joinPauseCooldownBtn">⏸ Pause</button>
+              <button class="btn btn-secondary btn-sm" id="joinResetCooldownBtn">🔄 Reset</button>
+            </div>
+            <div class="imposter-status-banner" id="joinImposterStatusBanner" style="margin-top:0.75rem; text-align:center; font-weight:bold; color:#e74c3c;">
+              ⏱️ COOLDOWN IN PROGRESS...
+            </div>
+          </div>
+
+          <!-- Global Crew Task Progress Widget -->
+          <div class="dash-card widget-tasks" style="width:100%; margin-bottom:1.5rem;">
+            <div class="dash-card-header">
+              <h3>📋 Global Crew Task Progress</h3>
+              <span class="progress-percent" id="joinTaskPercentText">0%</span>
+            </div>
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" id="joinTaskProgressBar" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <!-- Personal Tasks Checklist -->
+          <div class="join-tasks-panel">
+            <div class="panel-header-row">
+              <h3>📋 YOUR ASSIGNED TASKS</h3>
+              <span class="task-count-tag" id="joinTaskCountTag">0 / 0 Done</span>
+            </div>
+            <p class="section-sub">Perform your real-life tasks and check them off when finished!</p>
+
+            <div id="joinTasksListContainer" class="join-tasks-checklist">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

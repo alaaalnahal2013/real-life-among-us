@@ -1,0 +1,2074 @@
+/* ==========================================================================
+   Among Us Flashcards Application JavaScript Logic
+   ========================================================================== */
+
+// Complete List of Cards (1 Rules, 10 Crewmates, 1 Imposter, 12 Tasks)
+const CARDS_DATA = [
+  // 1. Rules Card
+  {
+    id: 'rules-1',
+    type: 'rules',
+    theme: 'parchment',
+    title: 'GAME RULES',
+    content: {
+      body: [
+        'THE WAY THE IMPOSTER KILLS THE CREWMATES IS BY A BRIEF TOUCH ON THE SHOULDER AND BETWEEN EACH KILL IS 40 SECS.',
+        'YOU CANNOT SCREAM OR SAY ANYTHING ONCE THE IMPOSTER HAS KILLED YOU.',
+        'YOU CANNOT SPEAK DURING THE ROUND.',
+        'IF YOU ARE KILLED, SIT DOWN AND DO NOT MAKE A SOUND.'
+      ],
+      footer: 'GOOD LUCK.'
+    }
+  },
+
+  // 2. Roles: 10 Crewmate Cards
+  ...Array.from({ length: 10 }).map((_, idx) => ({
+    id: `role-crewmate-${idx + 1}`,
+    type: 'role',
+    roleType: 'crewmate',
+    theme: 'teal',
+    title: 'CREWMATE',
+    number: idx + 1,
+    content: {
+      desc: 'YOUR IDENTITY: CREWMATE.\nCOMPLETE TASKS TO WIN. HELP IDENTIFY THE IMPOSTER.',
+      subnote: 'Do not reveal your identity. Your color is NOT your identifier.'
+    }
+  })),
+
+  // 3. Roles: 1 Imposter Card
+  {
+    id: 'role-imposter-1',
+    type: 'role',
+    roleType: 'imposter',
+    theme: 'teal',
+    title: 'IMPOSTER',
+    number: 1,
+    content: {
+      desc: 'YOUR IDENTITY: IMPOSTER.\nELIMINATE CREWMATES TO WIN. BLEND IN.',
+      subnote: 'Keep your identity secret. Touch shoulder to kill (40s cooldown).'
+    }
+  },
+
+  // 4. Tasks: 12 Task Cards
+  {
+    id: 'task-1',
+    type: 'task',
+    theme: 'parchment',
+    title: 'ARRANGING THE CUPS',
+    desc: 'Take 3 cups from the kitchen and arrange them on the table.',
+    ticks: 3,
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h1a4 4 0 0 1 0 8h-1M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/></svg>`
+  },
+  {
+    id: 'task-2',
+    type: 'task',
+    theme: 'parchment',
+    title: 'FILLING THE WATER',
+    desc: 'Fill a glass with water and place it in a specific location.',
+    ticks: 2,
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`
+  },
+  {
+    id: 'task-3',
+    type: 'task',
+    theme: 'parchment',
+    title: 'RECYCLING',
+    desc: 'Throw 3 empty cans in the trash can.',
+    ticks: 3,
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`
+  },
+  {
+    id: 'task-4',
+    type: 'task',
+    theme: 'parchment',
+    title: 'TARGETING',
+    desc: 'Throw a small ball or object into the laundry basket from a distance of 3 steps.',
+    ticks: 4,
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`
+  },
+  {
+    id: 'task-5',
+    type: 'task',
+    theme: 'parchment',
+    title: 'QUICK PUZZLE',
+    desc: 'Assemble 4 puzzle pieces or rearrange scattered papers on the table.',
+    ticks: 3,
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.47 1.23 0 1.7l-1.568 1.568c-.23.23-.338.556-.289.878.204 1.341-.75 2.518-2.091 2.518h-1.568c-.322 0-.648.108-.878.338l-1.568 1.568c-.47.47-1.23.47-1.7 0l-1.568-1.568c-.23-.23-.556-.338-.878-.289-1.341.204-2.518-.75-2.518-2.091v-1.568c0-.322-.108-.648-.338-.878l-1.568-1.568c-.47-.47-.47-1.23 0-1.7l1.568-1.568c.23-.23.338-.556.289-.878-.204-1.341.75-2.518 2.091-2.518h1.568c.322 0 .648-.108.878-.338l1.568-1.568c.47-.47 1.23-.47 1.7 0l1.568 1.568c.23.23.556.338.878.289 1.341-.204 2.518.75 2.518 2.091v1.568z"/></svg>`
+  },
+  {
+    id: 'task-6',
+    type: 'task',
+    theme: 'parchment',
+    title: 'ORDERING NUMBERS',
+    desc: 'Write numbers from 1 to 10 on a piece of paper in ascending order.',
+    ticks: 2,
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>`
+  },
+  {
+    id: 'task-7',
+    type: 'task',
+    theme: 'parchment',
+    title: 'BALL BALANCE',
+    desc: 'Balance a small ball on a spoon while walking 5 steps without dropping it.',
+    ticks: 4,
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M12 11v10"/></svg>`
+  },
+  {
+    id: 'task-8',
+    type: 'task',
+    theme: 'parchment',
+    title: 'SECRET CODE',
+    desc: 'Write a secret 4-digit code on a paper and hide it under a cushion.',
+    ticks: 3,
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`
+  },
+  {
+    id: 'task-9',
+    type: 'task',
+    theme: 'parchment',
+    title: 'CLEAN FILTER',
+    desc: 'Remove 3 small pieces of paper from the tray and drop them in the bin.',
+    ticks: 2,
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>`
+  },
+  {
+    id: 'task-10',
+    type: 'task',
+    theme: 'parchment',
+    title: 'CALIBRATE DISTRIBUTOR',
+    desc: 'Tap 3 specific colored objects in the room in correct sequence.',
+    ticks: 3,
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`
+  },
+  {
+    id: 'task-11',
+    type: 'task',
+    theme: 'parchment',
+    title: 'SWIPE CARD',
+    desc: 'Slide a flat card through a slot or between two books smoothly.',
+    ticks: 2,
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`
+  },
+  {
+    id: 'task-12',
+    type: 'task',
+    theme: 'parchment',
+    title: 'DOWNLOAD DATA',
+    desc: 'Hold your phone screen against a designated wall for 5 seconds.',
+    ticks: 3,
+    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`
+  }
+];
+
+// Global Helper to Render a Card Element
+function createCardElement(card) {
+  const cardEl = document.createElement('div');
+  cardEl.className = `card card-${card.type} ${card.theme}-theme`;
+  if (card.roleType === 'imposter') cardEl.classList.add('card-imposter');
+
+  let innerHTML = '';
+
+  if (card.type === 'rules') {
+    innerHTML = `
+      <div class="card-inner">
+        <h2 class="card-heading">${card.title}</h2>
+        <div class="rules-body">
+          ${card.content.body.map(p => `<p>${p}</p>`).join('')}
+          <div class="rules-footer">${card.content.footer}</div>
+        </div>
+      </div>
+    `;
+  } else if (card.type === 'role') {
+    const isImposter = card.roleType === 'imposter';
+    innerHTML = `
+      <div class="card-inner">
+        <h3 class="role-title">${card.title} ${card.number > 1 ? `#${card.number}` : ''}</h3>
+        <p class="role-desc">${card.content.desc.replace('\n', '<br>')}</p>
+        <p class="role-subnote">${card.content.subnote}</p>
+        <div class="helmet-icon-wrap">
+          <svg class="helmet-svg ${isImposter ? 'imposter-helmet' : ''}" viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="3">
+            <path d="M18 50 V 22 C 18 12, 42 12, 42 22 V 50 Z"/>
+            <ellipse cx="30" cy="24" rx="9" ry="6" stroke-width="3" fill="#aee0d6"/>
+            <path d="M14 30 V 46 C 14 48, 18 48, 18 46 V 30 Z"/>
+          </svg>
+        </div>
+      </div>
+    `;
+  } else if (card.type === 'task') {
+    const ticksHtml = Array.from({ length: 5 }).map((_, i) => 
+      `<span class="tick ${i < card.ticks ? 'active' : ''}"></span>`
+    ).join('');
+
+    innerHTML = `
+      <div class="card-inner">
+        <div class="card-type-label">TASK:</div>
+        <h3 class="task-title">${card.title}</h3>
+        <p class="task-desc">${card.desc}</p>
+        <div class="card-bottom-gfx">
+          ${card.iconSvg || ''}
+          <div class="card-bar-ticks">${ticksHtml}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  cardEl.innerHTML = innerHTML;
+
+  cardEl.addEventListener('click', () => {
+    if (typeof openModalCard === 'function') {
+      openModalCard(card);
+    }
+  });
+
+  return cardEl;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+
+  // Application State
+  let currentDeckIndex = 0;
+  let activeFilter = 'all';
+
+  // Render Grid View
+  function renderGridGallery() {
+    const gridContainer = document.getElementById('cardsGridContainer');
+    gridContainer.innerHTML = '';
+
+    const filteredCards = CARDS_DATA.filter(card => {
+      if (activeFilter === 'all') return true;
+      if (activeFilter === 'role') return card.type === 'role';
+      if (activeFilter === 'task') return card.type === 'task';
+      if (activeFilter === 'rules') return card.type === 'rules';
+      return true;
+    });
+
+    document.getElementById('countAll').textContent = CARDS_DATA.length;
+
+    filteredCards.forEach(card => {
+      gridContainer.appendChild(createCardElement(card));
+    });
+  }
+
+  // Render Flashcard Deck Mode
+  function updateDeckCard() {
+    const currentCard = CARDS_DATA[currentDeckIndex];
+    const frontTarget = document.getElementById('deckCardFront');
+    frontTarget.innerHTML = '';
+    frontTarget.appendChild(createCardElement(currentCard));
+
+    document.getElementById('deckCurrentIdx').textContent = currentDeckIndex + 1;
+    document.getElementById('deckTotalCount').textContent = CARDS_DATA.length;
+    document.getElementById('deckCardBadge').textContent = currentCard.title;
+
+    // Reset flip state
+    document.getElementById('flipCardWrapper').classList.remove('flipped');
+  }
+
+  // Render Print Sheet
+  function renderPrintSheet() {
+    const printContainer = document.getElementById('printCardsGrid');
+    printContainer.innerHTML = '';
+
+    CARDS_DATA.forEach(card => {
+      printContainer.appendChild(createCardElement(card));
+    });
+  }
+
+  // Render a Card to Canvas for High-Resolution PNG Download
+  function renderCardToCanvas(card) {
+    const canvas = document.createElement('canvas');
+    const scale = 2; // High-DPI scale factor
+    const width = 320 * scale;
+    const height = 450 * scale;
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d');
+    const isTeal = card.theme === 'teal';
+    const isImposter = card.roleType === 'imposter';
+
+    // Background Color
+    const bgColor = isTeal ? '#7ca89d' : '#f6eedb';
+    const borderColor = isTeal ? '#1c3631' : '#2c251e';
+    const textColor = isTeal ? '#132a26' : '#231c15';
+
+    // Outer Card Fill & Rounded Rectangle
+    ctx.fillStyle = bgColor;
+    ctx.beginPath();
+    ctx.roundRect(10, 10, width - 20, height - 20, 24);
+    ctx.fill();
+
+    // Outer Thick Border
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 8;
+    ctx.stroke();
+
+    // Inner Double-Frame Border
+    ctx.beginPath();
+    ctx.roundRect(28, 28, width - 56, height - 56, 16);
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    // Corner Notches
+    const notchSize = 16;
+    ctx.strokeRect(28, 28, notchSize, notchSize);
+    ctx.strokeRect(width - 28 - notchSize, height - 28 - notchSize, notchSize, notchSize);
+
+    // Text & Content Rendering
+    ctx.fillStyle = textColor;
+    ctx.textAlign = 'center';
+
+    if (card.type === 'rules') {
+      ctx.font = 'bold 30px "Space Mono", monospace';
+      ctx.fillText(card.title, width / 2, 75);
+
+      ctx.beginPath();
+      ctx.moveTo(40, 90);
+      ctx.lineTo(width - 40, 90);
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.font = 'bold 20px "Architects Daughter", cursive, sans-serif';
+      let y = 130;
+      card.content.body.forEach(line => {
+        const words = line.split(' ');
+        let currentLine = '';
+        words.forEach(word => {
+          const testLine = currentLine + word + ' ';
+          if (ctx.measureText(testLine).width > width - 90) {
+            ctx.fillText(currentLine, width / 2, y);
+            currentLine = word + ' ';
+            y += 28;
+          } else {
+            currentLine = testLine;
+          }
+        });
+        ctx.fillText(currentLine, width / 2, y);
+        y += 40;
+      });
+
+      ctx.font = 'bold 24px "Architects Daughter", cursive, sans-serif';
+      ctx.fillText(card.content.footer, width / 2, height - 60);
+
+    } else if (card.type === 'role') {
+      ctx.font = '900 36px "Outfit", sans-serif';
+      ctx.fillText(`${card.title} ${card.number > 1 ? '#' + card.number : ''}`, width / 2, 80);
+
+      ctx.fillStyle = textColor;
+      ctx.font = 'bold 20px "Architects Daughter", cursive, sans-serif';
+      
+      const lines = card.content.desc.split('\n');
+      let y = 130;
+      lines.forEach(line => {
+        ctx.fillText(line, width / 2, y);
+        y += 32;
+      });
+
+      ctx.font = 'italic 17px "Architects Daughter", cursive, sans-serif';
+      ctx.fillText(card.content.subnote, width / 2, y + 20);
+
+      // Draw Helmet Graphic
+      const hX = width / 2;
+      const hY = height - 120;
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = borderColor;
+      ctx.fillStyle = '#aee0d6';
+
+      // Helmet Visor
+      ctx.beginPath();
+      ctx.ellipse(hX, hY, 36, 24, 0, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.stroke();
+
+      // Body outline
+      ctx.beginPath();
+      ctx.roundRect(hX - 32, hY + 15, 64, 45, 10);
+      ctx.stroke();
+
+    } else if (card.type === 'task') {
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 20px "Space Mono", monospace';
+      ctx.fillText('TASK:', 50, 70);
+
+      ctx.font = '900 30px "Outfit", sans-serif';
+      ctx.fillText(card.title, 50, 115);
+
+      ctx.font = '22px "Architects Daughter", cursive, sans-serif';
+      let y = 160;
+      const words = card.desc.split(' ');
+      let currentLine = '';
+      words.forEach(word => {
+        const testLine = currentLine + word + ' ';
+        if (ctx.measureText(testLine).width > width - 100) {
+          ctx.fillText(currentLine, 50, y);
+          currentLine = word + ' ';
+          y += 32;
+        } else {
+          currentLine = testLine;
+        }
+      });
+      ctx.fillText(currentLine, 50, y);
+
+      // Ticks
+      ctx.fillStyle = borderColor;
+      const barY = height - 60;
+      for (let i = 0; i < 5; i++) {
+        if (i < card.ticks) {
+          ctx.fillRect(width - 150 + (i * 20), barY, 14, 24);
+        } else {
+          ctx.strokeRect(width - 150 + (i * 20), barY, 14, 24);
+        }
+      }
+    }
+
+    return canvas;
+  }
+
+  // Trigger PNG Download for a specific Card
+  function downloadCardPNG(card) {
+    const canvas = renderCardToCanvas(card);
+    const fileName = `${card.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}${card.number ? '_' + card.number : ''}.png`;
+    const link = document.createElement('a');
+    link.download = fileName;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+
+  // Batch Download All Cards
+  function downloadAllCardsPNG() {
+    let delay = 0;
+    CARDS_DATA.forEach((card, index) => {
+      setTimeout(() => {
+        downloadCardPNG(card);
+      }, delay);
+      delay += 250; // stagger downloads slightly to prevent browser blocking
+    });
+  }
+
+  // Download Standalone Printable HTML Package
+  function downloadStandaloneHTML() {
+    const pageHtml = document.documentElement.outerHTML;
+    const blob = new Blob([pageHtml], { type: 'text/html' });
+    const link = document.createElement('a');
+    link.download = 'among_us_cards_printable_package.html';
+    link.href = URL.createObjectURL(blob);
+    link.click();
+  }
+
+  // Generate and Download Complete PDF Document containing all cards
+  function downloadCardsAsPDF() {
+    if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) {
+      // Fallback if CDN is unreachable or offline
+      alert('Generating PDF via browser print view...');
+      renderPrintSheet();
+      window.print();
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    // A4 Page Layout: 3 columns x 3 rows = 9 cards per page
+    const colWidth = 58;
+    const rowHeight = 82;
+    const marginLeft = 12;
+    const marginTop = 15;
+    const gapX = 6;
+    const gapY = 8;
+    const cols = 3;
+    const rows = 3;
+
+    CARDS_DATA.forEach((card, index) => {
+      if (index > 0 && index % (cols * rows) === 0) {
+        doc.addPage();
+      }
+
+      const pageIdx = index % (cols * rows);
+      const col = pageIdx % cols;
+      const row = Math.floor(pageIdx / cols);
+
+      const x = marginLeft + col * (colWidth + gapX);
+      const y = marginTop + row * (rowHeight + gapY);
+
+      // Render canvas and get image data URL
+      const canvas = renderCardToCanvas(card);
+      const imgData = canvas.toDataURL('image/png');
+
+      // Add card image to PDF
+      doc.addImage(imgData, 'PNG', x, y, colWidth, rowHeight);
+
+      // Light cut lines around card
+      doc.setDrawColor(160, 160, 160);
+      doc.setLineDashPattern([1, 1], 0);
+      doc.rect(x, y, colWidth, rowHeight);
+    });
+
+    doc.save('among_us_flashcards_complete_set.pdf');
+  }
+
+  // Modal Inspection with Download option
+  function openModalCard(card) {
+    const modalTarget = document.getElementById('modalCardTarget');
+    modalTarget.innerHTML = '';
+    
+    const cardEl = createCardElement(card);
+    modalTarget.appendChild(cardEl);
+
+    // Append Download PNG Button in Modal
+    const downloadBtnModal = document.createElement('button');
+    downloadBtnModal.className = 'btn btn-primary';
+    downloadBtnModal.style.marginTop = '1rem';
+    downloadBtnModal.style.width = '100%';
+    downloadBtnModal.innerHTML = `
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download PNG Image
+    `;
+    downloadBtnModal.addEventListener('click', () => downloadCardPNG(card));
+    modalTarget.appendChild(downloadBtnModal);
+
+    document.getElementById('cardModal').classList.add('active');
+  }
+
+  // Header Download Dropdown Toggle
+  const downloadBtn = document.getElementById('downloadBtn');
+  const downloadDropdown = document.getElementById('downloadDropdown');
+  if (downloadBtn && downloadDropdown) {
+    downloadBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      downloadDropdown.classList.toggle('active');
+    });
+
+    document.addEventListener('click', () => {
+      downloadDropdown.classList.remove('active');
+    });
+
+    document.getElementById('downloadPdfBtn').addEventListener('click', () => {
+      downloadCardsAsPDF();
+    });
+
+    document.getElementById('downloadAllPngBtn').addEventListener('click', () => {
+      downloadAllCardsPNG();
+    });
+
+    document.getElementById('downloadOfflineHtmlBtn').addEventListener('click', () => {
+      downloadStandaloneHTML();
+    });
+  }
+
+  // Deck Current Card Download
+  const downloadCurrentCardBtn = document.getElementById('downloadCurrentCardBtn');
+  if (downloadCurrentCardBtn) {
+    downloadCurrentCardBtn.addEventListener('click', () => {
+      const currentCard = CARDS_DATA[currentDeckIndex];
+      downloadCardPNG(currentCard);
+    });
+  }
+
+  // Event Listeners for Controls & Tabs
+  const segmentedBtns = document.querySelectorAll('.segmented-btn');
+  segmentedBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      segmentedBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const targetView = btn.dataset.view;
+      document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
+
+      if (targetView === 'desk') {
+        document.getElementById('deskView').classList.add('active');
+      } else if (targetView === 'grid') {
+        document.getElementById('gridView').classList.add('active');
+        renderGridGallery();
+      } else if (targetView === 'deck') {
+        document.getElementById('deckView').classList.add('active');
+        updateDeckCard();
+      }
+    });
+  });
+
+  // Filter Chips
+  const filterChips = document.querySelectorAll('.filter-chip');
+  filterChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      filterChips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      activeFilter = chip.dataset.filter;
+      renderGridGallery();
+    });
+  });
+
+  // Deck Controls
+  document.getElementById('deckPrevBtn').addEventListener('click', () => {
+    currentDeckIndex = (currentDeckIndex - 1 + CARDS_DATA.length) % CARDS_DATA.length;
+    updateDeckCard();
+  });
+
+  document.getElementById('deckNextBtn').addEventListener('click', () => {
+    currentDeckIndex = (currentDeckIndex + 1) % CARDS_DATA.length;
+    updateDeckCard();
+  });
+
+  // 3D Flip Card Toggle
+  document.getElementById('flipCardWrapper').addEventListener('click', () => {
+    document.getElementById('flipCardWrapper').classList.toggle('flipped');
+  });
+
+  // Keyboard navigation for Deck Mode
+  document.addEventListener('keydown', (e) => {
+    if (document.getElementById('deckView').classList.contains('active')) {
+      if (e.key === 'ArrowRight') {
+        currentDeckIndex = (currentDeckIndex + 1) % CARDS_DATA.length;
+        updateDeckCard();
+      } else if (e.key === 'ArrowLeft') {
+        currentDeckIndex = (currentDeckIndex - 1 + CARDS_DATA.length) % CARDS_DATA.length;
+        updateDeckCard();
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        document.getElementById('flipCardWrapper').classList.toggle('flipped');
+      }
+    }
+  });
+
+  // Modal Close
+  document.getElementById('modalCloseBtn').addEventListener('click', () => {
+    document.getElementById('cardModal').classList.remove('active');
+  });
+
+  document.getElementById('cardModal').addEventListener('click', (e) => {
+    if (e.target.id === 'cardModal') {
+      document.getElementById('cardModal').classList.remove('active');
+    }
+  });
+
+  // Print PDF Trigger
+  document.getElementById('printBtn').addEventListener('click', () => {
+    renderPrintSheet();
+    window.print();
+  });
+
+  // Initialize main gallery
+  renderGridGallery();
+  updateDeckCard();
+});
+
+/* ==========================================================================
+   HOST & JOIN A PARTY (PLAY WITH FRIENDS) MODULE
+   ========================================================================== */
+
+const PartyManager = {
+  state: {
+    roomCode: '',
+    hostName: '',
+    players: [],
+    maxPlayers: 4,
+    settings: {
+      imposters: 1,
+      killCooldown: 40,
+      tasksPerPlayer: 3
+    },
+    assignedGame: null,
+    joinedPlayer: null,
+    revealIndex: 0,
+    killTimerInterval: null,
+    killTimerSeconds: 40,
+    isCooldownRunning: false,
+    discussionTimerInterval: null,
+    discussionSeconds: 90,
+    isDiscussionRunning: false
+  },
+
+  channel: null,
+
+  init() {
+    this.generateRoomCode();
+    this.bindEvents();
+    this.renderPlayerChips();
+    this.listenStateSync();
+
+    // Check for public URL direct room join hash (e.g. #room=AMONG-8294)
+    if (window.location.hash && window.location.hash.includes('room=')) {
+      const match = window.location.hash.match(/room=([A-Za-z0-9\-]+)/);
+      if (match && match[1]) {
+        const urlRoomCode = match[1].toUpperCase();
+        setTimeout(() => {
+          const joinModal = document.getElementById('joinPartyModal');
+          if (joinModal) {
+            joinModal.classList.add('active');
+            this.showStepInModal('joinPartyModal', 'joinSetupStep');
+            const codeInput = document.getElementById('joinRoomCodeInput');
+            if (codeInput) codeInput.value = urlRoomCode;
+          }
+        }, 300);
+      }
+    }
+  },
+
+  broadcastStateUpdate() {
+    try {
+      const payload = {
+        roomCode: this.state.roomCode,
+        players: this.state.players,
+        settings: this.state.settings,
+        assignedGame: this.state.assignedGame,
+        timestamp: Date.now()
+      };
+
+      if (window.BroadcastChannel) {
+        if (!this.channel) this.channel = new BroadcastChannel('among_us_party_channel');
+        this.channel.postMessage(payload);
+      }
+      localStorage.setItem('among_us_party_sync', JSON.stringify(payload));
+    } catch(e) {}
+  },
+
+  getRoomsRegistry() {
+    try {
+      const raw = localStorage.getItem('among_us_rooms_registry');
+      return raw ? JSON.parse(raw) : {};
+    } catch(e) {
+      return {};
+    }
+  },
+
+  getRoomData(roomCode) {
+    if (!roomCode) return null;
+    const registry = this.getRoomsRegistry();
+    const cleanKey = roomCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    for (const key in registry) {
+      if (key.replace(/[^A-Z0-9]/g, '') === cleanKey) {
+        return registry[key];
+      }
+    }
+    return null;
+  },
+
+  saveRoomData(roomCode, roomData) {
+    if (!roomCode) return;
+    try {
+      const registry = this.getRoomsRegistry();
+      const cleanKey = roomCode.trim().toUpperCase();
+      registry[cleanKey] = roomData;
+      localStorage.setItem('among_us_rooms_registry', JSON.stringify(registry));
+    } catch(e) {}
+  },
+
+  broadcastStateUpdate() {
+    try {
+      if (!this.state.roomCode) return;
+
+      const payload = {
+        roomCode: this.state.roomCode,
+        hostName: this.state.hostName,
+        players: this.state.players,
+        maxPlayers: this.state.maxPlayers || 4,
+        settings: this.state.settings,
+        assignedGame: this.state.assignedGame,
+        isEmergencyActive: !!this.state.isEmergencyActive,
+        discussionSeconds: this.state.discussionSeconds || 90,
+        killTimerSeconds: this.state.killTimerSeconds || 40,
+        timestamp: Date.now()
+      };
+
+      // Save room to multi-room registry
+      this.saveRoomData(this.state.roomCode, payload);
+
+      if (window.BroadcastChannel) {
+        if (!this.channel) this.channel = new BroadcastChannel('among_us_party_channel');
+        this.channel.postMessage(payload);
+      }
+      localStorage.setItem(`among_us_room_sync_${this.state.roomCode.toUpperCase()}`, JSON.stringify(payload));
+    } catch(e) {}
+  },
+
+  listenStateSync() {
+    try {
+      if (window.BroadcastChannel) {
+        if (!this.channel) this.channel = new BroadcastChannel('among_us_party_channel');
+        this.channel.onmessage = (e) => this.handleRemoteSync(e.data);
+      }
+      window.addEventListener('storage', (e) => {
+        if (e.key && e.key.startsWith('among_us_room_sync_') && e.newValue) {
+          try {
+            const data = JSON.parse(e.newValue);
+            this.handleRemoteSync(data);
+          } catch(err) {}
+        } else if (e.key === 'among_us_rooms_registry' && e.newValue) {
+          if (this.state.roomCode) {
+            const updated = this.getRoomData(this.state.roomCode);
+            if (updated) this.handleRemoteSync(updated);
+          }
+        }
+      });
+    } catch(e) {}
+  },
+
+  playEmergencySiren() {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.25);
+      osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.5);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.5);
+    } catch(e) {}
+  },
+
+  handleRemoteSync(data) {
+    if (!data || !data.roomCode) return;
+    
+    // Process sync ONLY if it matches this tab's active roomCode
+    if (!this.state.roomCode || data.roomCode.toUpperCase() !== this.state.roomCode.toUpperCase()) {
+      return;
+    }
+
+    this.state.roomCode = data.roomCode;
+    if (data.hostName !== undefined) this.state.hostName = data.hostName;
+    if (data.players) this.state.players = data.players;
+    if (data.maxPlayers) this.state.maxPlayers = data.maxPlayers;
+    if (data.settings) this.state.settings = data.settings;
+    if (data.assignedGame) this.state.assignedGame = data.assignedGame;
+
+    // Sync Emergency Meeting State across all devices
+    if (data.isEmergencyActive) {
+      if (!this.state.isEmergencyActive) {
+        this.playEmergencySiren();
+      }
+      this.state.isEmergencyActive = true;
+      const hostOverlay = document.getElementById('emergencyMeetingOverlay');
+      const clientOverlay = document.getElementById('joinEmergencyMeetingOverlay');
+      if (hostOverlay) hostOverlay.style.display = 'flex';
+      if (clientOverlay) clientOverlay.style.display = 'flex';
+      if (data.discussionSeconds !== undefined) {
+        this.state.discussionSeconds = data.discussionSeconds;
+        this.updateDiscussionTimerDisplay();
+      }
+    } else if (data.isEmergencyActive === false && this.state.isEmergencyActive) {
+      this.state.isEmergencyActive = false;
+      const hostOverlay = document.getElementById('emergencyMeetingOverlay');
+      const clientOverlay = document.getElementById('joinEmergencyMeetingOverlay');
+      if (hostOverlay) hostOverlay.style.display = 'none';
+      if (clientOverlay) clientOverlay.style.display = 'none';
+    }
+
+    // Refresh Host Lobby & Waiting Room
+    this.renderPlayerChips();
+    this.renderWaitingLobby();
+    this.renderDashboardPlayers();
+    this.updateGlobalTaskProgress();
+
+    // If joined player active, refresh personal dashboard
+    if (this.state.joinedPlayer && this.state.assignedGame) {
+      const matched = this.state.assignedGame.players.find(p => p.name.toLowerCase() === this.state.joinedPlayer.name.toLowerCase());
+      if (matched) {
+        this.state.joinedPlayer = matched;
+        this.renderJoinedPlayerDashboard();
+      }
+    }
+
+    // If waiting in lobby step and game has started, automatically roll card and view player dashboard!
+    const waitingStep = document.getElementById('joinWaitingStep');
+    if (waitingStep && waitingStep.classList.contains('active') && this.state.assignedGame && this.state.joinedPlayer) {
+      const matched = this.state.assignedGame.players.find(p => p.name.toLowerCase() === this.state.joinedPlayer.name.toLowerCase());
+      if (matched) {
+        this.state.joinedPlayer = matched;
+        this.triggerSequentialCardRollingAnimation(matched, () => {
+          this.showStepInModal('joinPartyModal', 'joinDashboardStep');
+          this.renderJoinedPlayerDashboard();
+        });
+      }
+    }
+  },
+
+  generateRoomCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = 'AMONG-';
+    for (let i = 0; i < 4; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    this.state.roomCode = code;
+    const codeEl = document.getElementById('roomCodeDisplay');
+    if (codeEl) codeEl.textContent = code;
+    const dashCodeEl = document.getElementById('dashRoomCode');
+    if (dashCodeEl) dashCodeEl.textContent = `ROOM: ${code}`;
+    this.broadcastStateUpdate();
+  },
+
+  getMinRequiredPlayers(imposters) {
+    switch (parseInt(imposters)) {
+      case 1: return 4;
+      case 2: return 6;
+      case 3: return 8;
+      case 4: return 10;
+      case 5: return 12;
+      default: return 4;
+    }
+  },
+
+  setPlayerCount(targetCount) {
+    const clamped = Math.max(4, Math.min(14, targetCount));
+    this.state.maxPlayers = clamped;
+
+    const selectEl = document.getElementById('playerCountSelect');
+    if (selectEl) selectEl.value = String(clamped);
+
+    this.renderPlayerChips();
+    this.renderWaitingLobby();
+    this.broadcastStateUpdate();
+  },
+
+  renderPlayerChips() {
+    const listEl = document.getElementById('playersChipsList');
+    const badgeEl = document.getElementById('playerCountBadge');
+    if (!listEl) return;
+
+    const maxCap = this.state.maxPlayers || 4;
+    badgeEl.textContent = `${this.state.players.length} / ${maxCap}`;
+
+    const selectEl = document.getElementById('playerCountSelect');
+    if (selectEl) {
+      selectEl.value = String(maxCap);
+    }
+
+    if (this.state.players.length === 0) {
+      listEl.innerHTML = `<div style="color: #7f8c8d; font-size: 0.85rem; font-style: italic; padding: 0.5rem 0;">No players added yet. Enter host name, add player names, or share room code!</div>`;
+    } else {
+      listEl.innerHTML = this.state.players.map((name, idx) => {
+        const isHost = (this.state.hostName && name.toLowerCase() === this.state.hostName.toLowerCase());
+        return `
+          <div class="player-chip ${isHost ? 'host-chip' : ''}">
+            <span>${isHost ? '👑' : '👤'} ${name}</span>
+            <button class="remove-p-btn" data-idx="${idx}">&times;</button>
+          </div>
+        `;
+      }).join('');
+
+      listEl.querySelectorAll('.remove-p-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(e.target.getAttribute('data-idx'));
+          const removedName = this.state.players[idx];
+          if (removedName && this.state.hostName && removedName.toLowerCase() === this.state.hostName.toLowerCase()) {
+            this.state.hostName = '';
+            const hostInput = document.getElementById('hostNameInput');
+            if (hostInput) hostInput.value = '';
+          }
+          this.state.players.splice(idx, 1);
+          this.renderPlayerChips();
+          this.renderWaitingLobby();
+          this.broadcastStateUpdate();
+        });
+      });
+    }
+  },
+
+  addPlayer(name) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (this.state.players.length >= 14) {
+      alert('Maximum 14 players allowed!');
+      return;
+    }
+    if (this.state.players.some(p => p.toLowerCase() === trimmed.toLowerCase())) {
+      alert(`Player name "${trimmed}" already exists in the room! Please use a unique player name.`);
+      return;
+    }
+    this.state.players.push(trimmed);
+    this.renderPlayerChips();
+    this.renderWaitingLobby();
+    this.broadcastStateUpdate();
+  },
+
+  showStepInModal(modalId, stepId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    modal.querySelectorAll('.party-step').forEach(step => {
+      step.classList.remove('active');
+    });
+    const target = document.getElementById(stepId);
+    if (target) target.classList.add('active');
+  },
+
+  showStep(stepId) {
+    this.showStepInModal('partyModal', stepId);
+  },
+
+  fisherYatesShuffle(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  },
+
+  startGame() {
+    const imposterCount = parseInt(document.getElementById('imposterCountSelect').value);
+    const killCooldown = parseInt(document.getElementById('killCooldownSelect').value);
+    const tasksPerPlayer = parseInt(document.getElementById('tasksPerPlayerSelect').value);
+
+    // Dynamic Thresholds: 1 Imposter -> 4 players, 2 Imposters -> 6 players, 3 Imposters -> 8 players, 4 Imposters -> 10 players, 5 Imposters -> 12 players
+    const minRequired = this.getMinRequiredPlayers(imposterCount);
+
+    if (this.state.players.length < minRequired) {
+      alert(`⚠️ Player Threshold Not Met!\n\nA ${imposterCount} Imposter lobby requires at least ${minRequired} players to start.\nCurrently joined: ${this.state.players.length}/${minRequired} players.\n\nPlease add more players or share Room Code ${this.state.roomCode}!`);
+      return;
+    }
+
+    this.state.settings = { imposters: imposterCount, killCooldown, tasksPerPlayer };
+
+    const availableTasks = CARDS_DATA.filter(c => c.type === 'task');
+
+    // Deduplicate players list case-insensitively before role assignment
+    const uniquePlayers = [];
+    this.state.players.forEach(p => {
+      if (!uniquePlayers.some(u => u.toLowerCase() === p.toLowerCase())) {
+        uniquePlayers.push(p);
+      }
+    });
+    this.state.players = uniquePlayers;
+
+    // Pick EXACTLY imposterCount random indices from original player order
+    // 1 Imposter lobby: Every player has equal low probability (e.g. 25% for 4 players). Player 1 has no bias!
+    // Someone is 100% guaranteed to be chosen as Imposter.
+    const imposterIndices = new Set();
+    const targetImposterCount = Math.min(imposterCount, this.state.players.length - 1);
+    while (imposterIndices.size < Math.max(1, targetImposterCount)) {
+      const randIdx = Math.floor(Math.random() * this.state.players.length);
+      imposterIndices.add(randIdx);
+    }
+
+    const assignedPlayers = this.state.players.map((name, i) => {
+      const isImposter = imposterIndices.has(i);
+      
+      let assignedTasks = [];
+      if (!isImposter) {
+        const taskShuffled = this.fisherYatesShuffle(availableTasks);
+        assignedTasks = taskShuffled.slice(0, tasksPerPlayer).map(t => ({
+          id: t.id,
+          title: t.title,
+          desc: t.desc || (t.content ? t.content.desc : ''),
+          completed: false
+        }));
+      }
+
+      return {
+        id: `p_${i + 1}_${name.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+        name,
+        role: isImposter ? 'imposter' : 'crewmate',
+        tasks: assignedTasks,
+        alive: true
+      };
+    });
+
+    this.state.assignedGame = {
+      players: assignedPlayers
+    };
+
+    if (this.state.joinedPlayer) {
+      const matched = assignedPlayers.find(p => p.name.toLowerCase() === this.state.joinedPlayer.name.toLowerCase());
+      if (matched) {
+        this.state.joinedPlayer = matched;
+      }
+    }
+
+    this.broadcastStateUpdate();
+
+    this.state.revealIndex = 0;
+    this.showStep('partyRevealStep');
+    this.setupRevealStep();
+  },
+
+  setupRevealStep() {
+    const curIdx = this.state.revealIndex;
+    const totalPlayers = this.state.assignedGame.players.length;
+    const player = this.state.assignedGame.players[curIdx];
+
+    document.getElementById('revealPlayerTitle').textContent = `Pass device to ${player.name} (${curIdx + 1}/${totalPlayers})`;
+    document.getElementById('curtainPlayerName').textContent = player.name;
+
+    const progressBadge = document.getElementById('hostPlayerProgressBadge');
+    if (progressBadge) {
+      progressBadge.textContent = `Player ${curIdx + 1} of ${totalPlayers} (${player.name})`;
+    }
+
+    const hostBtn = document.getElementById('hostSwitchNextPlayerBtn');
+    if (hostBtn) {
+      const nextIdx = curIdx + 1;
+      if (nextIdx < totalPlayers) {
+        const nextPlayer = this.state.assignedGame.players[nextIdx];
+        hostBtn.innerHTML = `👑 Host: Switch to ${nextPlayer.name} (${nextIdx + 1}/${totalPlayers}) ➔`;
+      } else {
+        hostBtn.innerHTML = `👑 Host: Launch Live Host Dashboard! 🚀`;
+      }
+    }
+
+    document.getElementById('curtainFrontView').style.display = 'block';
+    document.getElementById('curtainRevealedContent').style.display = 'none';
+  },
+
+  // Interactive Luck-Based Sequential Card Rolling Reel Engine
+  triggerSequentialCardRollingAnimation(player, onComplete) {
+    const rollingStage = document.getElementById('cardRollingStage');
+    if (!rollingStage) {
+      onComplete();
+      return;
+    }
+
+    rollingStage.style.display = 'flex';
+
+    const stepBadge = document.getElementById('reelStepBadge');
+    const reelCard = document.getElementById('slotReelCard');
+    const typeTag = document.getElementById('reelCardTypeTag');
+    const iconEl = document.getElementById('reelCardIcon');
+    const titleEl = document.getElementById('reelCardTitle');
+    const subEl = document.getElementById('reelCardSub');
+    const bannerText = document.getElementById('rollingBannerText');
+    const dotsEl = document.getElementById('reelProgressDots');
+
+    const tasksCount = player.role === 'crewmate' ? (player.tasks ? player.tasks.length : (this.state.settings.tasksPerPlayer || 3)) : 0;
+    const totalRolls = 1 + tasksCount; // 1 for Role, N for Tasks
+
+    // Render dot indicators
+    if (dotsEl) {
+      dotsEl.innerHTML = Array.from({ length: totalRolls }).map((_, i) => `
+        <div class="reel-dot ${i === 0 ? 'active' : ''}" id="rdot-${i}"></div>
+      `).join('');
+    }
+
+    const playBeep = (freq = 400, dur = 0.05) => {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        osc.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + dur);
+      } catch(e) {}
+    };
+
+    const roleCandidates = [
+      { icon: '🟢', title: 'CREWMATE', sub: 'Complete Tasks' },
+      { icon: '🔪', title: 'IMPOSTER', sub: 'Sabotage & Kill' },
+      { icon: '🔍', title: 'DETECTIVE', sub: 'Identify Imposter' },
+      { icon: '⚡', title: 'ENGINEER', sub: 'Vent Maintenance' }
+    ];
+
+    const availableTasks = CARDS_DATA.filter(c => c.type === 'task');
+
+    let currentRollIdx = 0;
+
+    const executeNextRoll = () => {
+      if (currentRollIdx >= totalRolls) {
+        setTimeout(() => {
+          rollingStage.style.display = 'none';
+          onComplete();
+        }, 500);
+        return;
+      }
+
+      // Update dot statuses
+      for (let i = 0; i < totalRolls; i++) {
+        const dot = document.getElementById(`rdot-${i}`);
+        if (dot) {
+          dot.className = `reel-dot ${i < currentRollIdx ? 'done' : (i === currentRollIdx ? 'active' : '')}`;
+        }
+      }
+
+      if (reelCard) reelCard.className = 'slot-reel-card reel-spin';
+
+      if (currentRollIdx === 0) {
+        // ROLL 1: SECRET ROLE
+        if (stepBadge) stepBadge.textContent = '🎲 STEP 1: ROLLING SECRET ROLE...';
+        if (bannerText) bannerText.textContent = '🎲 ROLLING ROLE LUCK...';
+
+        let count = 0;
+        const spinInterval = setInterval(() => {
+          const cand = roleCandidates[count % roleCandidates.length];
+          if (typeTag) typeTag.textContent = 'ROLE CARD';
+          if (iconEl) iconEl.textContent = cand.icon;
+          if (titleEl) titleEl.textContent = cand.title;
+          if (subEl) subEl.textContent = cand.sub;
+          playBeep(320 + (count % 4) * 60);
+          count++;
+        }, 70);
+
+        setTimeout(() => {
+          clearInterval(spinInterval);
+
+          const isImp = player.role === 'imposter';
+          if (typeTag) typeTag.textContent = 'ASSIGNED ROLE';
+          if (iconEl) iconEl.textContent = isImp ? '🔪' : '🟢';
+          if (titleEl) titleEl.textContent = isImp ? 'IMPOSTER' : 'CREWMATE';
+          if (subEl) subEl.textContent = isImp ? 'Eliminate Crewmates' : 'Complete Tasks';
+
+          if (reelCard) reelCard.className = `slot-reel-card ${isImp ? 'reel-locked-imposter' : 'reel-locked'}`;
+          playBeep(isImp ? 220 : 680, 0.25);
+
+          currentRollIdx++;
+          setTimeout(executeNextRoll, 1200);
+        }, 1400);
+
+      } else {
+        // ROLL N: TASK CARD (2, 3, or 4 tasks!)
+        const taskIdx = currentRollIdx - 1;
+        const targetTask = (player.tasks && player.tasks[taskIdx]) ? player.tasks[taskIdx] : { title: `Task ${taskIdx + 1}`, desc: 'Perform assigned task' };
+
+        if (stepBadge) stepBadge.textContent = `📋 STEP ${currentRollIdx + 1}: ROLLING TASK ${taskIdx + 1} OF ${tasksCount}...`;
+        if (bannerText) bannerText.textContent = `📋 DRAWING TASK ${taskIdx + 1} CARD...`;
+
+        let count = 0;
+        const spinInterval = setInterval(() => {
+          const candTask = availableTasks[count % availableTasks.length] || { title: 'Task Card', desc: 'Shuffling tasks...' };
+          const taskDescText = candTask.desc || (candTask.content ? candTask.content.desc : 'Real-life task');
+          if (typeTag) typeTag.textContent = `TASK ${taskIdx + 1} OF ${tasksCount}`;
+          if (iconEl) iconEl.textContent = '📋';
+          if (titleEl) titleEl.textContent = candTask.title || 'Task Card';
+          if (subEl) subEl.textContent = taskDescText.slice(0, 30) + '...';
+          playBeep(440 + (count % 4) * 50);
+          count++;
+        }, 70);
+
+        setTimeout(() => {
+          clearInterval(spinInterval);
+
+          if (typeTag) typeTag.textContent = `TASK ${taskIdx + 1} ASSIGNED`;
+          if (iconEl) iconEl.textContent = '✅';
+          if (titleEl) titleEl.textContent = targetTask.title;
+          if (subEl) subEl.textContent = targetTask.desc;
+
+          if (reelCard) reelCard.className = 'slot-reel-card reel-locked';
+          playBeep(620, 0.2);
+
+          currentRollIdx++;
+          setTimeout(executeNextRoll, 1000);
+        }, 1100);
+      }
+    };
+
+    executeNextRoll();
+  },
+
+  revealSecretRole() {
+    const curIdx = this.state.revealIndex;
+    const player = this.state.assignedGame.players[curIdx];
+
+    this.triggerSequentialCardRollingAnimation(player, () => {
+      const isImposter = player.role === 'imposter';
+
+      const cardContainer = document.getElementById('secretRoleCardContainer');
+      cardContainer.innerHTML = '';
+
+      const roleCardData = isImposter 
+        ? { type: 'role', theme: 'teal', roleType: 'imposter', title: 'IMPOSTER', content: { desc: 'YOUR IDENTITY: IMPOSTER.\nELIMINATE CREWMATES TO WIN. BLEND IN.', subnote: 'Keep your identity secret. Touch shoulder to kill.' } }
+        : { type: 'role', theme: 'teal', roleType: 'crewmate', title: 'CREWMATE', content: { desc: 'YOUR IDENTITY: CREWMATE.\nCOMPLETE TASKS TO WIN. HELP IDENTIFY THE IMPOSTER.', subnote: 'Do not reveal your identity.' } };
+
+      const cardEl = createCardElement(roleCardData);
+      cardContainer.appendChild(cardEl);
+
+      const tasksBox = document.getElementById('secretTasksBox');
+      const tasksList = document.getElementById('secretTasksList');
+
+      if (isImposter) {
+        tasksBox.querySelector('h4').textContent = '🔪 IMPOSTER OBJECTIVE & RULES:';
+        tasksList.innerHTML = `
+          <li>• Touch crewmates on the shoulder to eliminate them secretly.</li>
+          <li>• Wait <strong>${this.state.settings.killCooldown} seconds</strong> cooldown between each kill.</li>
+          <li>• Pretend to perform tasks to blend in!</li>
+          <li>• Remain completely quiet once eliminated or during rounds.</li>
+        `;
+      } else {
+        tasksBox.querySelector('h4').textContent = `📋 YOUR ASSIGNED REAL-LIFE TASKS (${player.tasks.length}):`;
+        tasksList.innerHTML = player.tasks.map(t => `
+          <li>• <strong>${t.title}</strong>: ${t.desc}</li>
+        `).join('');
+      }
+
+      const totalPlayers = this.state.assignedGame.players.length;
+      const nextIdx = curIdx + 1;
+      const confirmBtn = document.getElementById('confirmMemorizedBtn');
+      const confirmBtnTop = document.getElementById('confirmMemorizedBtnTop');
+      const hostBtn = document.getElementById('hostSwitchNextPlayerBtn');
+      const bannerText = document.getElementById('autoPassBannerText');
+
+      if (nextIdx < totalPlayers) {
+        const nextPlayer = this.state.assignedGame.players[nextIdx];
+        const btnText = `✅ I've Memorized My Role ➔ Pass Device to ${nextPlayer.name} (${nextIdx + 1}/${totalPlayers})`;
+        if (confirmBtn) confirmBtn.innerHTML = btnText;
+        if (confirmBtnTop) confirmBtnTop.innerHTML = btnText;
+        if (hostBtn) hostBtn.innerHTML = `👑 Host: Switch to ${nextPlayer.name} (${nextIdx + 1}/${totalPlayers}) ➔`;
+        if (bannerText) bannerText.innerHTML = `Role & tasks rolled for <strong>${player.name}</strong>! Switch to <strong>${nextPlayer.name}</strong> (${nextIdx + 1}/${totalPlayers}) so they can roll too.`;
+      } else {
+        const btnText = `✅ All Players Memorized ➔ Launch Live Host Dashboard! 🚀`;
+        if (confirmBtn) confirmBtn.innerHTML = btnText;
+        if (confirmBtnTop) confirmBtnTop.innerHTML = btnText;
+        if (hostBtn) hostBtn.innerHTML = `👑 Host: All Players Rolled ➔ Launch Live Dashboard 🚀`;
+        if (bannerText) bannerText.innerHTML = `🎉 All players have rolled their secret roles & tasks! Click below to launch live game.`;
+      }
+
+      document.getElementById('curtainFrontView').style.display = 'none';
+      document.getElementById('curtainRevealedContent').style.display = 'block';
+
+      const modalContent = document.querySelector('.party-modal-content');
+      if (modalContent) modalContent.scrollTop = 0;
+    });
+  },
+
+  nextRevealPlayer() {
+    this.state.revealIndex++;
+    if (this.state.assignedGame && this.state.assignedGame.players && this.state.revealIndex < this.state.assignedGame.players.length) {
+      this.setupRevealStep();
+      const modalContent = document.querySelector('.party-modal-content');
+      if (modalContent) modalContent.scrollTop = 0;
+    } else {
+      this.startLiveDashboard();
+    }
+  },
+
+  startLiveDashboard() {
+    this.showStep('partyDashboardStep');
+    this.state.killTimerSeconds = this.state.settings.killCooldown;
+    this.updateCooldownDisplay();
+    this.renderDashboardPlayers();
+    this.updateGlobalTaskProgress();
+  },
+
+  joinParty(code, name) {
+    let cleanInputCode = code.trim().toUpperCase();
+    const trimmedName = name.trim();
+
+    if (!cleanInputCode) {
+      alert('Please enter the Room Code from the host!');
+      return;
+    }
+    if (!trimmedName) {
+      alert('Please enter your player name!');
+      return;
+    }
+
+    // Automatically prepend 'AMONG-' if user only typed the 4-digit code (e.g. 'MZ62')
+    if (!cleanInputCode.startsWith('AMONG-') && !cleanInputCode.includes('-')) {
+      cleanInputCode = 'AMONG-' + cleanInputCode;
+    }
+
+    // Lookup target room in multi-room registry
+    let existingRoom = this.getRoomData(cleanInputCode);
+
+    // If host hasn't stored state yet or room code matches current tab host code:
+    if (!existingRoom && this.state.roomCode && this.state.roomCode.toUpperCase().replace(/[^A-Z0-9]/g, '') === cleanInputCode.replace(/[^A-Z0-9]/g, '')) {
+      existingRoom = {
+        roomCode: this.state.roomCode,
+        hostName: this.state.hostName,
+        players: this.state.players,
+        maxPlayers: this.state.maxPlayers || 4,
+        settings: this.state.settings,
+        assignedGame: this.state.assignedGame
+      };
+    }
+
+    if (!existingRoom) {
+      alert(`⚠️ Room ${cleanInputCode} Not Found!\n\nPlease check that the Host has created this room code on their screen.`);
+      return;
+    }
+
+    // Connect this tab's session to the target room
+    this.state.roomCode = existingRoom.roomCode;
+    this.state.hostName = existingRoom.hostName || '';
+    this.state.players = existingRoom.players || [];
+    this.state.maxPlayers = existingRoom.maxPlayers || 4;
+    if (existingRoom.settings) this.state.settings = existingRoom.settings;
+    if (existingRoom.assignedGame) this.state.assignedGame = existingRoom.assignedGame;
+
+    const isAlreadyInRoom = this.state.players.some(p => p.toLowerCase() === trimmedName.toLowerCase());
+
+    if (this.state.players.length >= this.state.maxPlayers && !isAlreadyInRoom) {
+      alert(`This party room is full (${this.state.players.length}/${this.state.maxPlayers} players)!`);
+      return;
+    }
+
+    if (!isAlreadyInRoom) {
+      this.state.players.push(trimmedName);
+    }
+
+    // IF GAME IS ALREADY ACTIVE (Host has started or dealt cards):
+    if (this.state.assignedGame) {
+      let matchedPlayer = this.state.assignedGame.players.find(p => p.name.toLowerCase() === trimmedName.toLowerCase());
+      
+      if (!matchedPlayer) {
+        // Assign new joined player a Crewmate role with random tasks (NEVER Imposter!)
+        const availableTasks = CARDS_DATA.filter(c => c.type === 'task');
+        const taskShuffled = this.fisherYatesShuffle(availableTasks);
+        const assignedTasks = taskShuffled.slice(0, this.state.settings.tasksPerPlayer || 3).map(t => ({
+          id: t.id,
+          title: t.title,
+          desc: t.desc || (t.content ? t.content.desc : ''),
+          completed: false
+        }));
+
+        matchedPlayer = {
+          id: `p_mid_${Date.now()}_${trimmedName.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+          name: trimmedName,
+          role: 'crewmate',
+          tasks: assignedTasks,
+          alive: true
+        };
+        this.state.assignedGame.players.push(matchedPlayer);
+      }
+
+      this.state.joinedPlayer = matchedPlayer;
+      this.broadcastStateUpdate();
+
+      // Immediately trigger Sequential Card Rolling animation and open player dashboard!
+      this.triggerSequentialCardRollingAnimation(matchedPlayer, () => {
+        this.showStepInModal('joinPartyModal', 'joinDashboardStep');
+        this.renderJoinedPlayerDashboard();
+      });
+      return;
+    }
+
+    // IF GAME HAS NOT STARTED YET (in waiting lobby stage):
+    this.renderPlayerChips();
+    this.state.joinedPlayer = {
+      name: trimmedName,
+      role: 'crewmate',
+      tasks: [],
+      alive: true
+    };
+
+    this.broadcastStateUpdate();
+    this.showStepInModal('joinPartyModal', 'joinWaitingStep');
+    this.renderWaitingLobby();
+  },
+
+  renderWaitingLobby() {
+    const titleEl = document.getElementById('waitingRoomTitle');
+    if (titleEl) titleEl.textContent = `ROOM: ${this.state.roomCode || 'AMONG-LIVE'}`;
+
+    const imposterCount = parseInt(document.getElementById('imposterCountSelect')?.value || 1);
+    const minRequired = this.getMinRequiredPlayers(imposterCount);
+
+    const countEl = document.getElementById('waitingPlayerCount');
+    const reqEl = document.getElementById('waitingRequiredCount');
+    if (countEl) countEl.textContent = this.state.players.length;
+    if (reqEl) reqEl.textContent = minRequired;
+
+    const chipsEl = document.getElementById('waitingPlayersChips');
+    if (chipsEl) {
+      chipsEl.innerHTML = this.state.players.map(p => `
+        <div class="player-chip">
+          <span>👤 ${p}</span>
+        </div>
+      `).join('');
+    }
+
+    // If game is active, transition player from waiting lobby to player dashboard with card rolling!
+    if (this.state.assignedGame && this.state.joinedPlayer) {
+      const matched = this.state.assignedGame.players.find(p => p.name.toLowerCase() === this.state.joinedPlayer.name.toLowerCase());
+      if (matched) {
+        this.state.joinedPlayer = matched;
+        this.triggerSequentialCardRollingAnimation(matched, () => {
+          this.showStepInModal('joinPartyModal', 'joinDashboardStep');
+          this.renderJoinedPlayerDashboard();
+        });
+      }
+    }
+  },
+
+  renderJoinedPlayerDashboard() {
+    const player = this.state.joinedPlayer;
+    if (!player) return;
+
+    document.getElementById('joinRoomTag').textContent = `ROOM: ${this.state.roomCode || 'AMONG-LIVE'}`;
+    document.getElementById('joinPlayerHeader').textContent = `${player.name.toUpperCase()}'S DASHBOARD`;
+
+    const cardHolder = document.getElementById('joinSecretRoleHolder');
+    cardHolder.innerHTML = '';
+    const isImposter = player.role === 'imposter';
+    const roleCardData = isImposter
+      ? { type: 'role', theme: 'teal', roleType: 'imposter', title: 'IMPOSTER', content: { desc: 'YOUR IDENTITY: IMPOSTER.\nELIMINATE CREWMATES TO WIN. BLEND IN.', subnote: 'Keep your identity secret. Touch shoulder to kill.' } }
+      : { type: 'role', theme: 'teal', roleType: 'crewmate', title: 'CREWMATE', content: { desc: 'YOUR IDENTITY: CREWMATE.\nCOMPLETE TASKS TO WIN. HELP IDENTIFY THE IMPOSTER.', subnote: 'Do not reveal your identity.' } };
+
+    const cardEl = createCardElement(roleCardData);
+    cardHolder.appendChild(cardEl);
+
+    // Imposter Cooldown Widget on Player Personal Screen
+    const imposterWidget = document.getElementById('joinImposterCooldownWidget');
+    if (imposterWidget) {
+      imposterWidget.style.display = isImposter ? 'block' : 'none';
+      if (isImposter) {
+        this.updateCooldownDisplay();
+      }
+    }
+
+    const tasksContainer = document.getElementById('joinTasksListContainer');
+    const taskTag = document.getElementById('joinTaskCountTag');
+
+    if (isImposter) {
+      taskTag.textContent = 'Imposter Objectives';
+      tasksContainer.innerHTML = `
+        <div class="join-task-card-item">
+          <div class="join-task-info">
+            <h4>🔪 Eliminate Crewmates</h4>
+            <p>Touch crewmates secretly on the shoulder when no one is looking (40s cooldown).</p>
+          </div>
+        </div>
+        <div class="join-task-card-item">
+          <div class="join-task-info">
+            <h4>🎭 Blend In & Fake Tasks</h4>
+            <p>Pretend to perform real-life tasks around the room so crewmates don't suspect you!</p>
+          </div>
+        </div>
+      `;
+    } else {
+      const completedCount = player.tasks ? player.tasks.filter(t => t.completed).length : 0;
+      const totalCount = player.tasks ? player.tasks.length : 0;
+      taskTag.textContent = `${completedCount} / ${totalCount} Done`;
+
+      if (player.tasks) {
+        tasksContainer.innerHTML = player.tasks.map((t, idx) => `
+          <div class="join-task-card-item ${t.completed ? 'completed' : ''}">
+            <input type="checkbox" data-jidx="${idx}" ${t.completed ? 'checked' : ''}>
+            <div class="join-task-info">
+              <h4>${t.title}</h4>
+              <p>${t.desc}</p>
+            </div>
+          </div>
+        `).join('');
+
+        tasksContainer.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+          chk.addEventListener('change', (e) => {
+            const idx = parseInt(e.target.getAttribute('data-jidx'));
+            player.tasks[idx].completed = e.target.checked;
+            this.renderJoinedPlayerDashboard();
+            this.updateGlobalTaskProgress();
+            this.broadcastStateUpdate();
+          });
+        });
+      }
+    }
+    this.updateGlobalTaskProgress();
+  },
+
+  updateCooldownDisplay() {
+    const el = document.getElementById('cooldownDisplay');
+    const clientEl = document.getElementById('joinCooldownDisplay');
+    const secVal = this.state.killTimerSeconds || 0;
+    if (el) el.textContent = secVal;
+    if (clientEl) clientEl.textContent = secVal;
+
+    const banner = document.getElementById('joinImposterStatusBanner');
+    if (banner) {
+      if (secVal === 0) {
+        banner.innerHTML = `🔪 READY TO KILL! Touch crewmate on the shoulder.`;
+        banner.style.color = '#2ecc71';
+      } else {
+        banner.innerHTML = `⏱️ COOLDOWN IN PROGRESS (${secVal}s)`;
+        banner.style.color = '#e74c3c';
+      }
+    }
+  },
+
+  startKillCooldown() {
+    if (this.state.isCooldownRunning) return;
+    this.state.isCooldownRunning = true;
+
+    this.state.killTimerInterval = setInterval(() => {
+      if (this.state.killTimerSeconds > 0) {
+        this.state.killTimerSeconds--;
+        this.updateCooldownDisplay();
+        this.broadcastStateUpdate();
+      } else {
+        clearInterval(this.state.killTimerInterval);
+        this.state.isCooldownRunning = false;
+        try {
+          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = audioCtx.createOscillator();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+          osc.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.5);
+        } catch(e) {}
+        this.broadcastStateUpdate();
+      }
+    }, 1000);
+  },
+
+  pauseKillCooldown() {
+    clearInterval(this.state.killTimerInterval);
+    this.state.isCooldownRunning = false;
+    this.broadcastStateUpdate();
+  },
+
+  resetKillCooldown() {
+    this.pauseKillCooldown();
+    this.state.killTimerSeconds = this.state.settings ? (this.state.settings.killCooldown || 40) : 40;
+    this.updateCooldownDisplay();
+    this.broadcastStateUpdate();
+  },
+
+  triggerEmergencyMeeting() {
+    this.pauseKillCooldown();
+    this.playEmergencySiren();
+
+    this.state.isEmergencyActive = true;
+    this.state.discussionSeconds = 90;
+
+    const hostOverlay = document.getElementById('emergencyMeetingOverlay');
+    const clientOverlay = document.getElementById('joinEmergencyMeetingOverlay');
+    if (hostOverlay) hostOverlay.style.display = 'flex';
+    if (clientOverlay) clientOverlay.style.display = 'flex';
+
+    this.updateDiscussionTimerDisplay();
+    this.broadcastStateUpdate();
+  },
+
+  updateDiscussionTimerDisplay() {
+    const mins = Math.floor((this.state.discussionSeconds || 90) / 60);
+    const secs = (this.state.discussionSeconds || 90) % 60;
+    const str = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    const hostEl = document.getElementById('discussionTimerDisplay');
+    const clientEl = document.getElementById('joinDiscussionTimerDisplay');
+    if (hostEl) hostEl.textContent = str;
+    if (clientEl) clientEl.textContent = str;
+  },
+
+  startDiscussionTimer() {
+    if (this.state.isDiscussionRunning) return;
+    this.state.isDiscussionRunning = true;
+
+    this.state.discussionTimerInterval = setInterval(() => {
+      if (this.state.discussionSeconds > 0) {
+        this.state.discussionSeconds--;
+        this.updateDiscussionTimerDisplay();
+        this.broadcastStateUpdate();
+      } else {
+        clearInterval(this.state.discussionTimerInterval);
+        this.state.isDiscussionRunning = false;
+        this.broadcastStateUpdate();
+      }
+    }, 1000);
+  },
+
+  pauseDiscussionTimer() {
+    clearInterval(this.state.discussionTimerInterval);
+    this.state.isDiscussionRunning = false;
+    this.broadcastStateUpdate();
+  },
+
+  closeEmergencyMeeting() {
+    this.pauseDiscussionTimer();
+    this.state.isEmergencyActive = false;
+
+    const hostOverlay = document.getElementById('emergencyMeetingOverlay');
+    const clientOverlay = document.getElementById('joinEmergencyMeetingOverlay');
+    if (hostOverlay) hostOverlay.style.display = 'none';
+    if (clientOverlay) clientOverlay.style.display = 'none';
+
+    this.resetKillCooldown();
+    this.broadcastStateUpdate();
+  },
+
+  copyPublicRoomLink() {
+    if (!this.state.roomCode) {
+      alert('Please start or select a room first!');
+      return;
+    }
+    const cleanCode = this.state.roomCode.toUpperCase();
+    const publicUrl = `${window.location.origin}${window.location.pathname}#room=${cleanCode}`;
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(publicUrl).then(() => {
+        alert(`🔗 PUBLIC ROOM LINK COPIED!\n\nLink: ${publicUrl}\n\nShare this link with your friends on any phone, tablet, or laptop to join instantly across the web!`);
+      }).catch(() => {
+        prompt('Copy your Public Room Link below:', publicUrl);
+      });
+    } else {
+      prompt('Copy your Public Room Link below:', publicUrl);
+    }
+  },
+
+  renderDashboardPlayers() {
+    const grid = document.getElementById('dashPlayersGrid');
+    if (!grid || !this.state.assignedGame) return;
+
+    // 1. RENDER HOST'S PERSONAL SECRET ROLE CARD & TASKS (Confidential Player View for Host)
+    const hostNameStr = (this.state.hostName || '').toLowerCase();
+    const hostPlayer = this.state.assignedGame.players.find(p => p.name.toLowerCase() === hostNameStr) || this.state.assignedGame.players[0];
+
+    // Hide Imposter Kill Cooldown Widget on Host Dashboard if Host is a Crewmate!
+    const hostCooldownWidget = document.querySelector('#partyDashboardStep .widget-cooldown');
+    if (hostCooldownWidget) {
+      hostCooldownWidget.style.display = (hostPlayer && hostPlayer.role === 'imposter') ? 'block' : 'none';
+    }
+
+    if (hostPlayer) {
+      const hostHolder = document.getElementById('hostSecretCardHolder');
+      const hostTasksHolder = document.getElementById('hostPersonalTasksContainer');
+
+      if (hostHolder) {
+        hostHolder.innerHTML = '';
+        const isImp = hostPlayer.role === 'imposter';
+        const roleCardData = isImp
+          ? { type: 'role', theme: 'teal', roleType: 'imposter', title: 'IMPOSTER', content: { desc: 'YOUR IDENTITY: IMPOSTER.\nELIMINATE CREWMATES TO WIN. BLEND IN.', subnote: 'Keep your identity secret. Touch shoulder to kill.' } }
+          : { type: 'role', theme: 'teal', roleType: 'crewmate', title: 'CREWMATE', content: { desc: 'YOUR IDENTITY: CREWMATE.\nCOMPLETE TASKS TO WIN. HELP IDENTIFY THE IMPOSTER.', subnote: 'Do not reveal your identity.' } };
+        hostHolder.appendChild(createCardElement(roleCardData));
+      }
+
+      if (hostTasksHolder) {
+        if (hostPlayer.role === 'imposter') {
+          hostTasksHolder.innerHTML = `
+            <div style="color:#e74c3c; font-weight:bold; font-size:0.95rem;">🔪 Imposter Objectives: Touch crewmates secretly on shoulder (40s cooldown) & fake tasks around room!</div>
+          `;
+        } else if (hostPlayer.tasks) {
+          hostTasksHolder.innerHTML = `
+            <h4 style="font-size:0.9rem; color:#f39c12; margin-bottom:0.5rem;">📋 YOUR ASSIGNED REAL-LIFE TASKS:</h4>
+            ${hostPlayer.tasks.map((t, tIdx) => `
+              <label class="p-task-item ${t.completed ? 'completed' : ''}" style="margin-bottom:0.4rem; display:flex; align-items:center; gap:0.5rem; background:rgba(0,0,0,0.2); padding:0.4rem 0.8rem; border-radius:6px;">
+                <input type="checkbox" data-hpidx="${tIdx}" ${t.completed ? 'checked' : ''}>
+                <span><strong>${t.title}</strong>: ${t.desc}</span>
+              </label>
+            `).join('')}
+          `;
+
+          hostTasksHolder.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+            chk.addEventListener('change', (e) => {
+              const tIdx = parseInt(e.target.getAttribute('data-hpidx'));
+              hostPlayer.tasks[tIdx].completed = e.target.checked;
+              this.renderDashboardPlayers();
+              this.updateGlobalTaskProgress();
+              this.broadcastStateUpdate();
+            });
+          });
+        }
+      }
+    }
+
+    // 2. RENDER MASTER MONITOR GRID (Roles hidden by default to preserve host confidentiality during gameplay)
+    const isMonitorVisible = !!this.state.isHostMonitorVisible;
+
+    grid.innerHTML = this.state.assignedGame.players.map((p, pIdx) => {
+      const isDead = !p.alive;
+      let tasksHtml = '';
+
+      if (!isMonitorVisible) {
+        const doneTasks = p.role === 'crewmate' ? p.tasks.filter(t => t.completed).length : 0;
+        const totalTasks = p.role === 'crewmate' ? p.tasks.length : 0;
+        tasksHtml = `
+          <div style="font-size:0.85rem; color:#bdc3c7; font-style:italic;">
+            Role: 🔒 Hidden (Confidential) | Tasks: ${p.role === 'imposter' ? 'Fake Tasks' : `${doneTasks}/${totalTasks} Done`}
+          </div>
+        `;
+      } else {
+        tasksHtml = p.role === 'imposter'
+          ? `<div style="font-size:0.8rem; color:#e74c3c; font-weight:bold;">🔪 Imposter (Sabotage & Eliminate)</div>`
+          : p.tasks.map((t, tIdx) => `
+              <label class="p-task-item ${t.completed ? 'completed' : ''}">
+                <input type="checkbox" data-pidx="${pIdx}" data-tidx="${tIdx}" ${t.completed ? 'checked' : ''} ${isDead ? 'disabled' : ''}>
+                <span>${t.title}</span>
+              </label>
+            `).join('');
+      }
+
+      return `
+        <div class="p-dash-card ${isDead ? 'dead-player' : ''}">
+          <div class="p-dash-header">
+            <span class="p-dash-name">${p.name} ${isDead ? '💀' : '🟢'}</span>
+            <button class="p-status-toggle ${isDead ? 'dead' : 'alive'}" data-pidx="${pIdx}">
+              ${isDead ? 'DEAD' : 'ALIVE'}
+            </button>
+          </div>
+          <div class="p-tasks-wrapper">
+            ${tasksHtml}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('.p-status-toggle').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const pIdx = parseInt(e.target.getAttribute('data-pidx'));
+        this.state.assignedGame.players[pIdx].alive = !this.state.assignedGame.players[pIdx].alive;
+        this.renderDashboardPlayers();
+        this.checkWinConditions();
+      });
+    });
+
+    grid.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+      chk.addEventListener('change', (e) => {
+        const pIdx = parseInt(e.target.getAttribute('data-pidx'));
+        const tIdx = parseInt(e.target.getAttribute('data-tidx'));
+        if (pIdx !== undefined && tIdx !== undefined && this.state.assignedGame.players[pIdx] && this.state.assignedGame.players[pIdx].tasks[tIdx]) {
+          this.state.assignedGame.players[pIdx].tasks[tIdx].completed = e.target.checked;
+          this.renderDashboardPlayers();
+          this.updateGlobalTaskProgress();
+        }
+      });
+    });
+  },
+
+  updateGlobalTaskProgress() {
+    if (!this.state.assignedGame) return;
+
+    let totalTasks = 0;
+    let completedTasks = 0;
+
+    this.state.assignedGame.players.forEach(p => {
+      if (p.role === 'crewmate') {
+        totalTasks += p.tasks.length;
+        completedTasks += p.tasks.filter(t => t.completed).length;
+      }
+    });
+
+    const percent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    document.getElementById('taskPercentText').textContent = `${percent}%`;
+    document.getElementById('taskProgressBar').style.width = `${percent}%`;
+
+    if (percent >= 100) {
+      this.triggerVictory('CREWMATES VICTORY! 🎉', 'All real-life tasks have been completed by the crew!');
+    }
+  },
+
+  checkWinConditions() {
+    if (!this.state.assignedGame) return;
+
+    const alivePlayers = this.state.assignedGame.players.filter(p => p.alive);
+    const aliveImposters = alivePlayers.filter(p => p.role === 'imposter');
+    const aliveCrewmates = alivePlayers.filter(p => p.role === 'crewmate');
+
+    if (aliveImposters.length === 0) {
+      this.triggerVictory('CREWMATES VICTORY! 🏆', 'All Imposters have been identified & eliminated!');
+    } else if (aliveImposters.length >= aliveCrewmates.length) {
+      this.triggerVictory('IMPOSTER VICTORY! 🔪', 'Imposters have outnumbered the Crewmates!');
+    }
+  },
+
+  triggerVictory(title, reason) {
+    this.pauseKillCooldown();
+    this.pauseDiscussionTimer();
+
+    this.showStep('partyVictoryStep');
+    document.getElementById('victoryTitle').textContent = title;
+    document.getElementById('victoryReason').textContent = reason;
+
+    const summaryEl = document.getElementById('victoryRolesSummary');
+    summaryEl.innerHTML = this.state.assignedGame.players.map(p => `
+      <div class="v-role-badge ${p.role === 'imposter' ? 'is-imp' : ''}">
+        ${p.name}: <strong>${p.role.toUpperCase()}</strong> (${p.alive ? 'Survived' : 'Eliminated'})
+      </div>
+    `).join('');
+  },
+
+  closeHostParty() {
+    this.pauseKillCooldown();
+    this.pauseDiscussionTimer();
+    document.getElementById('partyModal').classList.remove('active');
+  },
+
+  closeJoinParty() {
+    document.getElementById('joinPartyModal').classList.remove('active');
+  },
+
+  bindEvents() {
+    // Open Host Party Modal
+    const hostBtn = document.getElementById('hostPartyBtn');
+    if (hostBtn) {
+      hostBtn.addEventListener('click', () => {
+        document.getElementById('partyModal').classList.add('active');
+        this.showStep('partySetupStep');
+        const hostInput = document.getElementById('hostNameInput');
+        if (hostInput) hostInput.value = this.state.hostName || '';
+        this.renderPlayerChips();
+      });
+    }
+
+    // Host Name Input Live Sync
+    const hostNameInput = document.getElementById('hostNameInput');
+    if (hostNameInput) {
+      hostNameInput.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        const oldHostName = this.state.hostName;
+        this.state.hostName = val;
+
+        if (val) {
+          const oldIdx = oldHostName ? this.state.players.indexOf(oldHostName) : -1;
+          if (oldIdx !== -1) {
+            this.state.players[oldIdx] = val;
+          } else if (!this.state.players.includes(val)) {
+            this.state.players.unshift(val);
+          }
+        } else if (oldHostName) {
+          const oldIdx = this.state.players.indexOf(oldHostName);
+          if (oldIdx !== -1) this.state.players.splice(oldIdx, 1);
+        }
+
+        this.renderPlayerChips();
+        this.renderWaitingLobby();
+        this.broadcastStateUpdate();
+      });
+    }
+
+    // Player Count Dropdown Select Listener
+    const playerCountSelect = document.getElementById('playerCountSelect');
+    if (playerCountSelect) {
+      playerCountSelect.addEventListener('change', (e) => {
+        const count = parseInt(e.target.value);
+        this.setPlayerCount(count);
+      });
+    }
+
+    // Imposter Count Select Listener -> Auto-adjust player count if needed
+    const imposterCountSelect = document.getElementById('imposterCountSelect');
+    if (imposterCountSelect) {
+      imposterCountSelect.addEventListener('change', (e) => {
+        const minReq = this.getMinRequiredPlayers(e.target.value);
+        if (this.state.players.length < minReq) {
+          this.setPlayerCount(minReq);
+        }
+      });
+    }
+
+    // Open Join Party Modal
+    const joinBtn = document.getElementById('joinPartyBtn');
+    if (joinBtn) {
+      joinBtn.addEventListener('click', () => {
+        document.getElementById('joinPartyModal').classList.add('active');
+        this.showStepInModal('joinPartyModal', 'joinSetupStep');
+        // Do NOT auto-fill room code or name - user inputs it manually!
+        const codeInput = document.getElementById('joinRoomCodeInput');
+        if (codeInput) codeInput.value = '';
+        const nameInput = document.getElementById('joinPlayerNameInput');
+        if (nameInput) nameInput.value = '';
+      });
+    }
+
+    // Close Modal Crosses
+    const closeHostBtn = document.getElementById('partyModalCloseBtn');
+    if (closeHostBtn) {
+      closeHostBtn.addEventListener('click', () => this.closeHostParty());
+    }
+
+    const closeJoinBtn = document.getElementById('joinModalCloseBtn');
+    if (closeJoinBtn) {
+      closeJoinBtn.addEventListener('click', () => this.closeJoinParty());
+    }
+
+    // Explicit Exit Buttons
+    document.getElementById('exitHostPartyBtn')?.addEventListener('click', () => this.closeHostParty());
+    document.getElementById('exitHostDashBtn')?.addEventListener('click', () => this.closeHostParty());
+    document.getElementById('exitVictoryBtn')?.addEventListener('click', () => this.closeHostParty());
+    document.getElementById('exitJoinPartyBtn')?.addEventListener('click', () => this.closeJoinParty());
+    document.getElementById('exitJoinDashBtn')?.addEventListener('click', () => this.closeJoinParty());
+    document.getElementById('exitWaitingBtn')?.addEventListener('click', () => this.closeJoinParty());
+
+    // Submit Join Party Form
+    const submitJoinBtn = document.getElementById('submitJoinPartyBtn');
+    if (submitJoinBtn) {
+      submitJoinBtn.addEventListener('click', () => {
+        const code = document.getElementById('joinRoomCodeInput').value;
+        const name = document.getElementById('joinPlayerNameInput').value;
+        this.joinParty(code, name);
+      });
+    }
+
+    // Regen Code
+    const regenBtn = document.getElementById('regenCodeBtn');
+    if (regenBtn) {
+      regenBtn.addEventListener('click', () => this.generateRoomCode());
+    }
+
+    // Add Player
+    const addBtn = document.getElementById('addPlayerBtn');
+    const inputEl = document.getElementById('newPlayerNameInput');
+    if (addBtn && inputEl) {
+      addBtn.addEventListener('click', () => {
+        this.addPlayer(inputEl.value);
+        inputEl.value = '';
+      });
+      inputEl.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          this.addPlayer(inputEl.value);
+          inputEl.value = '';
+        }
+      });
+    }
+
+    // Start Game & Deal
+    const startBtn = document.getElementById('startGameDealBtn');
+    if (startBtn) {
+      startBtn.addEventListener('click', () => this.startGame());
+    }
+
+    // Reveal Secret Card Button
+    const revealBtn = document.getElementById('revealCardBtn');
+    if (revealBtn) {
+      revealBtn.addEventListener('click', () => this.revealSecretRole());
+    }
+
+    // Confirm Memorized Next Player (Top & Bottom Buttons)
+    const confirmBtn = document.getElementById('confirmMemorizedBtn');
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', () => this.nextRevealPlayer());
+    }
+    const confirmBtnTop = document.getElementById('confirmMemorizedBtnTop');
+    if (confirmBtnTop) {
+      confirmBtnTop.addEventListener('click', () => this.nextRevealPlayer());
+    }
+    const hostSwitchBtn = document.getElementById('hostSwitchNextPlayerBtn');
+    if (hostSwitchBtn) {
+      hostSwitchBtn.addEventListener('click', () => this.nextRevealPlayer());
+    }
+
+    // Cooldown controls
+    document.getElementById('startCooldownBtn')?.addEventListener('click', () => this.startKillCooldown());
+    document.getElementById('pauseCooldownBtn')?.addEventListener('click', () => this.pauseKillCooldown());
+    document.getElementById('resetCooldownBtn')?.addEventListener('click', () => this.resetKillCooldown());
+
+    // Emergency Meeting controls (Host & Client 3D Red Button)
+    document.getElementById('triggerEmergencyBtn')?.addEventListener('click', () => this.triggerEmergencyMeeting());
+    document.getElementById('clientEmergencyBtn')?.addEventListener('click', () => this.triggerEmergencyMeeting());
+    document.getElementById('startDiscussionTimerBtn')?.addEventListener('click', () => this.startDiscussionTimer());
+    document.getElementById('pauseDiscussionTimerBtn')?.addEventListener('click', () => this.pauseDiscussionTimer());
+    document.getElementById('closeEmergencyBtn')?.addEventListener('click', () => this.closeEmergencyMeeting());
+
+    // Client Imposter Personal Cooldown Controls
+    document.getElementById('joinStartCooldownBtn')?.addEventListener('click', () => this.startKillCooldown());
+    document.getElementById('joinPauseCooldownBtn')?.addEventListener('click', () => this.pauseKillCooldown());
+    document.getElementById('joinResetCooldownBtn')?.addEventListener('click', () => this.resetKillCooldown());
+
+    // Share Public Room Link buttons
+    document.getElementById('shareRoomLinkBtn')?.addEventListener('click', () => this.copyPublicRoomLink());
+    document.getElementById('shareRoomLinkBtnDash')?.addEventListener('click', () => this.copyPublicRoomLink());
+
+    // Host Confidentiality Mode Toggle
+    document.getElementById('toggleHostMonitorModeBtn')?.addEventListener('click', () => {
+      this.state.isHostMonitorVisible = !this.state.isHostMonitorVisible;
+      const btn = document.getElementById('toggleHostMonitorModeBtn');
+      if (btn) {
+        btn.textContent = this.state.isHostMonitorVisible
+          ? '👁️ Master Monitor (Roles Visible)'
+          : '🔒 Confidential Mode: Playing as Player';
+      }
+      this.renderDashboardPlayers();
+    });
+
+    // End Game Reset & Play Again
+    document.getElementById('endGameResetBtn')?.addEventListener('click', () => this.showStep('partySetupStep'));
+    document.getElementById('playAgainBtn')?.addEventListener('click', () => this.showStep('partySetupStep'));
+  }
+};
+
+// Initialize PartyManager on DOM load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => PartyManager.init());
+} else {
+  PartyManager.init();
+}

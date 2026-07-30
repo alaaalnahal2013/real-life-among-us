@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "name": "among-us-real-life-game",
+  "cleanUrls": true,
+  "routes": [
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
+}
