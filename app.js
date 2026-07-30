@@ -886,7 +886,6 @@ const PartyManager = {
         this.renderJoinedPlayerDashboard();
       }
     }
- }
 
     // If waiting in lobby step and game has started, automatically roll card and view player dashboard!
     const waitingStep = document.getElementById('joinWaitingStep');
@@ -2202,12 +2201,20 @@ const PartyManager = {
   },
 
   bindEvents() {
-    // Open Host Party Modal at Party Naming Pre-Screen
+    // Open Host Party Modal
     const hostBtn = document.getElementById('hostPartyBtn');
     if (hostBtn) {
       hostBtn.addEventListener('click', () => {
         document.getElementById('partyModal').classList.add('active');
-        this.showStep('partyNameStep');
+        if (this.state.assignedGame) {
+          this.showStep('partyDashboardStep');
+          this.renderDashboardPlayers();
+        } else if (this.state.partyName && this.state.roomCode) {
+          this.showStep('partySetupStep');
+          this.renderPlayerChips();
+        } else {
+          this.showStep('partyNameStep');
+        }
       });
     }
 
@@ -2268,12 +2275,16 @@ const PartyManager = {
     if (joinBtn) {
       joinBtn.addEventListener('click', () => {
         document.getElementById('joinPartyModal').classList.add('active');
-        this.showStepInModal('joinPartyModal', 'joinSetupStep');
-        // Do NOT auto-fill room code or name - user inputs it manually!
-        const codeInput = document.getElementById('joinRoomCodeInput');
-        if (codeInput) codeInput.value = '';
-        const nameInput = document.getElementById('joinPlayerNameInput');
-        if (nameInput) nameInput.value = '';
+        if (this.state.joinedPlayer && this.state.assignedGame) {
+          this.showStepInModal('joinPartyModal', 'joinDashboardStep');
+          this.renderJoinedPlayerDashboard();
+        } else {
+          this.showStepInModal('joinPartyModal', 'joinSetupStep');
+          const codeInput = document.getElementById('joinRoomCodeInput');
+          if (codeInput) codeInput.value = '';
+          const nameInput = document.getElementById('joinPlayerNameInput');
+          if (nameInput) nameInput.value = '';
+        }
       });
     }
 
