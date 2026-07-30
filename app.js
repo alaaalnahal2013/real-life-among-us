@@ -1912,6 +1912,7 @@ const PartyManager = {
         banner.style.color = '#e74c3c';
       }
     }
+    this.renderImposterTargetsGrid();
   },
 
   startKillCooldown() {
@@ -2136,7 +2137,7 @@ const PartyManager = {
         const pIdx = parseInt(e.target.getAttribute('data-pidx'));
         this.state.assignedGame.players[pIdx].alive = !this.state.assignedGame.players[pIdx].alive;
         this.renderDashboardPlayers();
-        this.checkWinConditions();
+        this.checkWinLossConditions();
       });
     });
 
@@ -2148,6 +2149,8 @@ const PartyManager = {
           this.state.assignedGame.players[pIdx].tasks[tIdx].completed = e.target.checked;
           this.renderDashboardPlayers();
           this.updateGlobalTaskProgress();
+          this.broadcastStateUpdate();
+          this.checkWinLossConditions();
         }
       });
     });
@@ -2167,42 +2170,25 @@ const PartyManager = {
     });
 
     const percent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-    document.getElementById('taskPercentText').textContent = `${percent}%`;
-    document.getElementById('taskProgressBar').style.width = `${percent}%`;
+    const taskPercentText = document.getElementById('taskPercentText');
+    const taskProgressBar = document.getElementById('taskProgressBar');
+    if (taskPercentText) taskPercentText.textContent = `${percent}%`;
+    if (taskProgressBar) taskProgressBar.style.width = `${percent}%`;
 
-    if (percent >= 100) {
-      this.triggerVictory('CREWMATES VICTORY! 🎉', 'All real-life tasks have been completed by the crew!');
-    }
+    const joinTaskPercentText = document.getElementById('joinTaskPercentText');
+    const joinTaskProgressBar = document.getElementById('joinTaskProgressBar');
+    if (joinTaskPercentText) joinTaskPercentText.textContent = `${percent}%`;
+    if (joinTaskProgressBar) joinTaskProgressBar.style.width = `${percent}%`;
+
+    this.checkWinLossConditions();
   },
 
   checkWinConditions() {
-    if (!this.state.assignedGame) return;
-
-    const alivePlayers = this.state.assignedGame.players.filter(p => p.alive);
-    const aliveImposters = alivePlayers.filter(p => p.role === 'imposter');
-    const aliveCrewmates = alivePlayers.filter(p => p.role === 'crewmate');
-
-    if (aliveImposters.length === 0) {
-      this.triggerVictory('CREWMATES VICTORY! 🏆', 'All Imposters have been identified & eliminated!');
-    } else if (aliveImposters.length >= aliveCrewmates.length) {
-      this.triggerVictory('IMPOSTER VICTORY! 🔪', 'Imposters have outnumbered the Crewmates!');
-    }
+    this.checkWinLossConditions();
   },
 
   triggerVictory(title, reason) {
-    this.pauseKillCooldown();
-    this.pauseDiscussionTimer();
-
-    this.showStep('partyVictoryStep');
-    document.getElementById('victoryTitle').textContent = title;
-    document.getElementById('victoryReason').textContent = reason;
-
-    const summaryEl = document.getElementById('victoryRolesSummary');
-    summaryEl.innerHTML = this.state.assignedGame.players.map(p => `
-      <div class="v-role-badge ${p.role === 'imposter' ? 'is-imp' : ''}">
-        ${p.name}: <strong>${p.role.toUpperCase()}</strong> (${p.alive ? 'Survived' : 'Eliminated'})
-      </div>
-    `).join('');
+    this.checkWinLossConditions();
   },
 
   closeHostParty() {
