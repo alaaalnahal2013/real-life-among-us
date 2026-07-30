@@ -707,56 +707,13 @@ const PartyManager = {
     }
   },
 
-  broadcastStateUpdate() {
-    try {
-      const payload = {
-        roomCode: this.state.roomCode,
-        players: this.state.players,
-        settings: this.state.settings,
-        assignedGame: this.state.assignedGame,
-        timestamp: Date.now()
-      };
+  // ============================================================
+  //  SUPABASE REAL-TIME SYNC LAYER
+  //  Replaces localStorage + BroadcastChannel (same-device only)
+  //  with Supabase Realtime (works across any device on internet)
+  // ============================================================
 
-      if (window.BroadcastChannel) {
-        if (!this.channel) this.channel = new BroadcastChannel('among_us_party_channel');
-        this.channel.postMessage(payload);
-      }
-      localStorage.setItem('among_us_party_sync', JSON.stringify(payload));
-    } catch(e) {}
-  },
-
-  getRoomsRegistry() {
-    try {
-      const raw = localStorage.getItem('among_us_rooms_registry');
-      return raw ? JSON.parse(raw) : {};
-    } catch(e) {
-      return {};
-    }
-  },
-
-  getRoomData(roomCode) {
-    if (!roomCode) return null;
-    const registry = this.getRoomsRegistry();
-    const cleanKey = roomCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-    for (const key in registry) {
-      if (key.replace(/[^A-Z0-9]/g, '') === cleanKey) {
-        return registry[key];
-      }
-    }
-    return null;
-  },
-
-  saveRoomData(roomCode, roomData) {
-    if (!roomCode) return;
-    try {
-      const registry = this.getRoomsRegistry();
-      const cleanKey = roomCode.trim().toUpperCase();
-      registry[cleanKey] = roomData;
-      localStorage.setItem('among_us_rooms_registry', JSON.stringify(registry));
-    } catch(e) {}
-  },
-
-  broadcastStateUpdate() {
+  async broadcastStateUpdate() {
     try {
       if (!this.state.roomCode) return;
 
@@ -773,38 +730,65 @@ const PartyManager = {
         timestamp: Date.now()
       };
 
-      // Save room to multi-room registry
-      this.saveRoomData(this.state.roomCode, payload);
-
-      if (window.BroadcastChannel) {
-        if (!this.channel) this.channel = new BroadcastChannel('among_us_party_channel');
-        this.channel.postMessage(payload);
+      if (window._supabase) {
+        await window._supabase.from('game_rooms').upsert({
+          room_code: this.state.roomCode.toUpperCase(),
+          state: payload
+        }, { onConflict: 'room_code' });
       }
-      localStorage.setItem(`among_us_room_sync_${this.state.roomCode.toUpperCase()}`, JSON.stringify(payload));
-    } catch(e) {}
+    } catch(e) {
+      console.warn('[Supabase] broadcastStateUpdate error:', e);
+    }
+  },
+
+  async getRoomData(roomCode) {
+    if (!roomCode) return null;
+    const cleanCode = roomCode.trim().toUpperCase();
+    try {
+      if (window._supabase) {
+        const { data, error } = await window._supabase
+          .from('game_rooms')
+          .select('state')
+          .eq('room_code', cleanCode)
+          .maybeSingle();
+        if (error) { console.warn('[Supabase] getRoomData error:', error); return null; }
+        return data?.state || null;
+      }
+      return null;
+    } catch(e) {
+      console.warn('[Supabase] getRoomData exception:', e);
+      return null;
+    }
   },
 
   listenStateSync() {
     try {
-      if (window.BroadcastChannel) {
-        if (!this.channel) this.channel = new BroadcastChannel('among_us_party_channel');
-        this.channel.onmessage = (e) => this.handleRemoteSync(e.data);
+      if (!window._supabase) {
+        console.warn('[Supabase] client not ready, sync disabled');
+        return;
       }
-      window.addEventListener('storage', (e) => {
-        if (e.key && e.key.startsWith('among_us_room_sync_') && e.newValue) {
-          try {
-            const data = JSON.parse(e.newValue);
-            this.handleRemoteSync(data);
-          } catch(err) {}
-        } else if (e.key === 'among_us_rooms_registry' && e.newValue) {
-          if (this.state.roomCode) {
-            const updated = this.getRoomData(this.state.roomCode);
-            if (updated) this.handleRemoteSync(updated);
+
+      // Subscribe to ALL changes on game_rooms table (Postgres Realtime)
+      this._realtimeChannel = window._supabase
+        .channel('game_rooms_realtime')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'game_rooms' },
+          (payload) => {
+            const newState = payload.new?.state;
+            if (newState) this.handleRemoteSync(newState);
           }
-        }
-      });
-    } catch(e) {}
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('[Supabase] Realtime connected ✅');
+          }
+        });
+    } catch(e) {
+      console.warn('[Supabase] listenStateSync error:', e);
+    }
   },
+
 
   playEmergencySiren() {
     try {
@@ -1341,7 +1325,7 @@ const PartyManager = {
     this.updateGlobalTaskProgress();
   },
 
-  joinParty(code, name) {
+  async joinParty(code, name) {
     let cleanInputCode = code.trim().toUpperCase();
     const trimmedName = name.trim();
 
@@ -1359,11 +1343,20 @@ const PartyManager = {
       cleanInputCode = 'AMONG-' + cleanInputCode;
     }
 
-    // Lookup target room in multi-room registry
-    let existingRoom = this.getRoomData(cleanInputCode);
+    // Show loading state on the join button
+    const joinBtn = document.getElementById('submitJoinPartyBtn');
+    const origText = joinBtn ? joinBtn.textContent : '';
+    if (joinBtn) { joinBtn.textContent = '🔍 Looking up room...'; joinBtn.disabled = true; }
 
-    // If host hasn't stored state yet or room code matches current tab host code:
-    if (!existingRoom && this.state.roomCode && this.state.roomCode.toUpperCase().replace(/[^A-Z0-9]/g, '') === cleanInputCode.replace(/[^A-Z0-9]/g, '')) {
+    // Lookup target room from Supabase
+    let existingRoom = await this.getRoomData(cleanInputCode);
+
+    // Restore button
+    if (joinBtn) { joinBtn.textContent = origText; joinBtn.disabled = false; }
+
+    // Fallback: if host is on the same device/tab, use in-memory state
+    if (!existingRoom && this.state.roomCode &&
+        this.state.roomCode.toUpperCase().replace(/[^A-Z0-9]/g, '') === cleanInputCode.replace(/[^A-Z0-9]/g, '')) {
       existingRoom = {
         roomCode: this.state.roomCode,
         hostName: this.state.hostName,
@@ -1375,11 +1368,11 @@ const PartyManager = {
     }
 
     if (!existingRoom) {
-      alert(`⚠️ Room ${cleanInputCode} Not Found!\n\nPlease check that the Host has created this room code on their screen.`);
+      alert(`⚠️ Room "${cleanInputCode}" Not Found!\n\nMake sure the host has created the room and is connected to the internet.`);
       return;
     }
 
-    // Connect this tab's session to the target room
+    // Connect this device's session to the target room
     this.state.roomCode = existingRoom.roomCode;
     this.state.hostName = existingRoom.hostName || '';
     this.state.players = existingRoom.players || [];
@@ -1401,7 +1394,7 @@ const PartyManager = {
     // IF GAME IS ALREADY ACTIVE (Host has started or dealt cards):
     if (this.state.assignedGame) {
       let matchedPlayer = this.state.assignedGame.players.find(p => p.name.toLowerCase() === trimmedName.toLowerCase());
-      
+
       if (!matchedPlayer) {
         // Assign new joined player a Crewmate role with random tasks (NEVER Imposter!)
         const availableTasks = CARDS_DATA.filter(c => c.type === 'task');
@@ -1424,7 +1417,7 @@ const PartyManager = {
       }
 
       this.state.joinedPlayer = matchedPlayer;
-      this.broadcastStateUpdate();
+      await this.broadcastStateUpdate();
 
       // Immediately trigger Sequential Card Rolling animation and open player dashboard!
       this.triggerSequentialCardRollingAnimation(matchedPlayer, () => {
@@ -1443,10 +1436,11 @@ const PartyManager = {
       alive: true
     };
 
-    this.broadcastStateUpdate();
+    await this.broadcastStateUpdate();
     this.showStepInModal('joinPartyModal', 'joinWaitingStep');
     this.renderWaitingLobby();
   },
+
 
   renderWaitingLobby() {
     const titleEl = document.getElementById('waitingRoomTitle');
