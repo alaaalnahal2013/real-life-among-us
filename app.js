@@ -2244,6 +2244,18 @@ const PartyManager = {
       createPartyBtn.addEventListener('click', () => this.createPartySubmit());
     }
 
+    // Party Name Input Live Sync
+    const partyNameInput = document.getElementById('partyNameInput');
+    if (partyNameInput) {
+      partyNameInput.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        this.state.partyName = val || "Alaa's Among Us Game";
+        const headerTitle = document.getElementById('hostPartyHeaderTitle');
+        if (headerTitle) headerTitle.textContent = this.state.partyName.toUpperCase();
+        this.broadcastStateUpdate();
+      });
+    }
+
     // Host Name Input Live Sync
     const hostNameInput = document.getElementById('hostNameInput');
     if (hostNameInput) {
