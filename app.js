@@ -1611,7 +1611,7 @@ const PartyManager = {
     const targetsGrid = document.getElementById('imposterTargetsGrid');
     if (!targetsGrid || !this.state.assignedGame) return;
 
-    const meName = this.state.joinedPlayer ? this.state.joinedPlayer.name.toLowerCase() : '';
+    const meName = this.state.joinedPlayer ? this.state.joinedPlayer.name.toLowerCase() : (this.state.hostName || '').toLowerCase();
     const aliveTargets = this.state.assignedGame.players.filter(p => p.alive && p.name.toLowerCase() !== meName && p.role !== 'imposter');
 
     if (aliveTargets.length === 0) {
@@ -2063,9 +2063,30 @@ const PartyManager = {
 
       if (hostTasksHolder) {
         if (hostPlayer.role === 'imposter') {
+          const isReady = (this.state.killTimerSeconds || 0) === 0;
+          const aliveTargets = this.state.assignedGame.players.filter(p => p.alive && p.name.toLowerCase() !== hostNameStr && p.role !== 'imposter');
           hostTasksHolder.innerHTML = `
-            <div style="color:#e74c3c; font-weight:bold; font-size:0.95rem;">🔪 Imposter Objectives: Touch crewmates secretly on shoulder (40s cooldown) & fake tasks around room!</div>
+            <div style="color:#e74c3c; font-weight:bold; font-size:0.95rem; margin-bottom:0.5rem;">🔪 Imposter Objectives: Touch crewmates secretly on shoulder & fake tasks around room!</div>
+            <div style="background:rgba(231,76,60,0.15); border:1.5px solid rgba(231,76,60,0.4); border-radius:10px; padding:0.75rem;">
+              <h4 style="color:#e74c3c; font-size:0.95rem; margin-bottom:0.4rem;">🔪 SELECT TARGET TO KILL:</h4>
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:0.5rem;">
+                ${aliveTargets.length === 0 ? '<div style="color:#bdc3c7; font-size:0.85rem;">No crewmate targets remaining.</div>' : aliveTargets.map(p => `
+                  <div style="background:rgba(0,0,0,0.4); border:1px solid ${isReady ? '#e74c3c' : 'rgba(255,255,255,0.1)'}; border-radius:6px; padding:0.5rem; text-align:center;">
+                    <div style="font-weight:bold; font-size:0.85rem; margin-bottom:0.3rem;">👤 ${p.name}</div>
+                    <button class="btn btn-danger btn-sm host-target-kill-btn" data-htarget="${p.name}" ${isReady ? '' : 'disabled'} style="width:100%; font-size:0.75rem; font-weight:bold; opacity:${isReady ? '1' : '0.5'};">
+                      ${isReady ? '🔪 KILL' : `⏱️ ${this.state.killTimerSeconds}s`}
+                    </button>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
           `;
+          hostTasksHolder.querySelectorAll('.host-target-kill-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              const targetName = e.target.getAttribute('data-htarget');
+              if (targetName) this.killTargetPlayer(targetName);
+            });
+          });
         } else if (hostPlayer.tasks) {
           hostTasksHolder.innerHTML = `
             <h4 style="font-size:0.9rem; color:#f39c12; margin-bottom:0.5rem;">📋 YOUR ASSIGNED REAL-LIFE TASKS:</h4>
@@ -2201,7 +2222,7 @@ const PartyManager = {
   },
 
   bindEvents() {
-    // Open Host Party Modal
+    // Open Host Party Modal at Party Naming Pre-Screen
     const hostBtn = document.getElementById('hostPartyBtn');
     if (hostBtn) {
       hostBtn.addEventListener('click', () => {
@@ -2209,11 +2230,10 @@ const PartyManager = {
         if (this.state.assignedGame) {
           this.showStep('partyDashboardStep');
           this.renderDashboardPlayers();
-        } else if (this.state.partyName && this.state.roomCode) {
-          this.showStep('partySetupStep');
-          this.renderPlayerChips();
         } else {
           this.showStep('partyNameStep');
+          const nameInput = document.getElementById('partyNameInput');
+          if (nameInput) nameInput.value = this.state.partyName || "Alaa's Among Us Game";
         }
       });
     }
