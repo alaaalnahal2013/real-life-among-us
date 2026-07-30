@@ -468,12 +468,34 @@
   <div class="modal-overlay" id="partyModal">
     <div class="modal-content party-modal-content">
       <button class="modal-close" id="partyModalCloseBtn">&times;</button>
-      
-      <!-- STEP 1: PARTY SETUP & LOBBY -->
-      <div id="partySetupStep" class="party-step active">
+
+      <!-- STEP 0: NAME THE PARTY (PRE-SCREEN) -->
+      <div id="partyNameStep" class="party-step active">
         <div class="party-header">
-          <div class="party-badge">HOST LOBBY</div>
-          <h2>PLAY WITH FRIENDS</h2>
+          <div class="party-badge">HOST SETUP</div>
+          <h2>NAME YOUR PARTY</h2>
+          <p>Give your real-life game room a fun name before starting!</p>
+        </div>
+
+        <div class="party-join-card-panel" style="max-width: 500px; margin: 0 auto;">
+          <div class="form-group">
+            <label for="partyNameInput" style="font-weight:bold; color:#f1c40f; font-size:1rem;">🎉 Party Name / Room Title:</label>
+            <input type="text" id="partyNameInput" placeholder="Enter party name (e.g. Alaa's Among Us Game)..." maxlength="25" class="party-input input-lg" value="Alaa's Among Us Game">
+          </div>
+
+          <div class="party-footer-row" style="justify-content: center; margin-top: 1.5rem;">
+            <button class="btn btn-party-host btn-lg btn-glow" id="createPartySubmitBtn" style="width: 100%; font-size: 1.15rem; font-weight: bold;">
+              🎉 Create Party ➔
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 1: PARTY SETUP & LOBBY -->
+      <div id="partySetupStep" class="party-step">
+        <div class="party-header">
+          <div class="party-badge" id="hostPartyBadgeTitle">HOST LOBBY</div>
+          <h2 id="hostPartyHeaderTitle">PLAY WITH FRIENDS</h2>
           <p>Setup player names, roles & tasks for your real-life Among Us game!</p>
         </div>
 
@@ -631,16 +653,28 @@
 
         <!-- Emergency Meeting Overlay Alert inside Dashboard -->
         <div id="emergencyMeetingOverlay" class="emergency-overlay" style="display:none;">
-          <div class="emergency-box">
+          <div class="emergency-box" style="max-width: 600px; width: 95%;">
             <div class="siren-icon">🚨</div>
             <h2>EMERGENCY MEETING / BODY REPORTED!</h2>
             <p>All players gather for discussion and voting!</p>
             <div class="timer-display-lg" id="discussionTimerDisplay">01:30</div>
             <div class="emergency-controls">
-              <button class="btn btn-primary" id="startDiscussionTimerBtn">▶ Start Discussion Timer</button>
-              <button class="btn btn-secondary" id="pauseDiscussionTimerBtn">⏸ Pause</button>
-              <button class="btn btn-success" id="closeEmergencyBtn">Dismiss Meeting</button>
+              <button class="btn btn-primary btn-sm" id="startDiscussionTimerBtn">▶ Start Timer</button>
+              <button class="btn btn-secondary btn-sm" id="pauseDiscussionTimerBtn">⏸ Pause</button>
+              <button class="btn btn-success btn-sm" id="closeEmergencyBtn">Dismiss Meeting</button>
             </div>
+
+            <!-- Host Realtime Interactive Voting Area -->
+            <div class="voting-section-wrap" style="margin-top: 1.25rem; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 1rem; text-align: left;">
+              <h3 style="color:#f1c40f; font-size:1.1rem; margin-bottom:0.3rem;">🗳️ CAST YOUR VOTE:</h3>
+              <p style="font-size:0.85rem; color:#bdc3c7; margin-bottom:0.75rem;">Touch a player's name below to vote them out of the ship!</p>
+              <div class="voting-players-grid" id="hostVotingPlayersGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.6rem;">
+                <!-- Rendered via JS -->
+              </div>
+              <div id="hostVotingResultBanner" class="voting-result-banner" style="display:none; margin-top:1rem; padding:0.75rem; border-radius:8px; font-weight:bold; text-align:center;"></div>
+            </div>
+          </div>
+        </div>
           </div>
         </div>
 
@@ -838,12 +872,21 @@
 
         <!-- Emergency Meeting Overlay for Client Device -->
         <div id="joinEmergencyMeetingOverlay" class="emergency-overlay" style="display:none;">
-          <div class="emergency-box">
+          <div class="emergency-box" style="max-width: 600px; width: 95%;">
             <div class="siren-icon">🚨</div>
             <h2>EMERGENCY MEETING / BODY REPORTED!</h2>
             <p>All players gather for discussion and voting!</p>
             <div class="timer-display-lg" id="joinDiscussionTimerDisplay">01:30</div>
-            <p style="color:#bdc3c7; font-size:0.9rem; margin-top:1rem;">Gather with other players in real life to discuss and vote!</p>
+
+            <!-- Client Realtime Interactive Voting Area -->
+            <div class="voting-section-wrap" style="margin-top: 1.25rem; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 1rem; text-align: left;">
+              <h3 style="color:#f1c40f; font-size:1.1rem; margin-bottom:0.3rem;">🗳️ CAST YOUR VOTE:</h3>
+              <p style="font-size:0.85rem; color:#bdc3c7; margin-bottom:0.75rem;">Touch a player's name below to vote them out of the ship!</p>
+              <div class="voting-players-grid" id="clientVotingPlayersGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.6rem;">
+                <!-- Rendered via JS -->
+              </div>
+              <div id="clientVotingResultBanner" class="voting-result-banner" style="display:none; margin-top:1rem; padding:0.75rem; border-radius:8px; font-weight:bold; text-align:center;"></div>
+            </div>
           </div>
         </div>
 
@@ -872,10 +915,10 @@
             <div id="joinSecretRoleHolder"></div>
           </div>
 
-          <!-- Imposter Cooldown Widget (Rendered dynamically for Imposters) -->
+          <!-- Imposter Cooldown Widget & Target Kills (Rendered dynamically for Imposters) -->
           <div class="dash-card widget-cooldown imposter-personal-widget" id="joinImposterCooldownWidget" style="display:none; width:100%; margin-bottom:1.5rem;">
-            <h3>🔪 IMPOSTER KILL COOLDOWN</h3>
-            <p class="section-sub">Manage your kill cooldown timer on your phone!</p>
+            <h3>🔪 IMPOSTER KILL COOLDOWN & TARGETS</h3>
+            <p class="section-sub">Manage your kill cooldown and eliminate players from your device!</p>
             <div class="cooldown-timer-wrap">
               <div class="timer-circle" id="joinCooldownCircle">
                 <span class="timer-number" id="joinCooldownDisplay">40</span>
@@ -889,6 +932,15 @@
             </div>
             <div class="imposter-status-banner" id="joinImposterStatusBanner" style="margin-top:0.75rem; text-align:center; font-weight:bold; color:#e74c3c;">
               ⏱️ COOLDOWN IN PROGRESS...
+            </div>
+
+            <!-- Imposter Target Kill Grid -->
+            <div class="imposter-target-kill-wrap" style="margin-top: 1.25rem; background: rgba(231,76,60,0.15); border: 1.5px solid rgba(231,76,60,0.4); border-radius: 12px; padding: 1rem; text-align: left;">
+              <h4 style="color:#e74c3c; font-size:1.05rem; margin-bottom:0.3rem;">🔪 SELECT TARGET TO KILL:</h4>
+              <p style="font-size:0.8rem; color:#bdc3c7; margin-bottom:0.75rem;">When kill cooldown reaches 0s, tap a player to eliminate them!</p>
+              <div id="imposterTargetsGrid" class="imposter-targets-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.65rem;">
+                <!-- Rendered via JS -->
+              </div>
             </div>
           </div>
 
@@ -918,6 +970,25 @@
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Victory / Defeat Overlay Modal with 10-Second Auto-Return -->
+  <div class="modal-overlay" id="gameEndModal" style="z-index: 10000;">
+    <div class="modal-content party-modal-content" style="text-align: center; max-width: 550px; background: radial-gradient(circle, #2c3e50 0%, #111 100%); border: 3px solid #f1c40f;">
+      <div id="gameEndIcon" style="font-size: 5rem; margin-bottom: 0.5rem;">🎉</div>
+      <h2 id="gameEndTitle" style="font-family: var(--font-heading); font-size: 2.2rem; font-weight: 900; color: #2ecc71; margin-bottom: 0.5rem;">VICTORY!</h2>
+      <p id="gameEndSubtitle" style="font-size: 1.1rem; color: #ecf0f1; margin-bottom: 1.5rem;">Crewmates completed all tasks and ejected the imposters!</p>
+      
+      <div class="auto-return-box" style="background: rgba(0,0,0,0.5); border: 1px dashed rgba(241,196,15,0.5); padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem;">
+        <span style="color: #f1c40f; font-weight: bold; font-family: var(--font-mono); font-size: 0.95rem;">
+          ⌛ RETURNING TO HOST LOBBY SETUP IN <span id="gameEndCountdownText" style="font-size: 1.5rem; color: #e74c3c;">10</span>s...
+        </span>
+      </div>
+
+      <button class="btn btn-primary btn-lg" id="gameEndReturnNowBtn" style="width: 100%; font-weight: bold;">
+        🔄 Return to Lobby Setup Now
+      </button>
     </div>
   </div>
 

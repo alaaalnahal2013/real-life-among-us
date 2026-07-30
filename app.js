@@ -663,6 +663,7 @@ const PartyManager = {
   state: {
     roomCode: '',
     hostName: '',
+    partyName: "Alaa's Among Us Game",
     players: [],
     maxPlayers: 4,
     settings: {
@@ -678,7 +679,12 @@ const PartyManager = {
     isCooldownRunning: false,
     discussionTimerInterval: null,
     discussionSeconds: 90,
-    isDiscussionRunning: false
+    isDiscussionRunning: false,
+    votes: {}, // { [voterName]: targetName }
+    ejectionResult: null,
+    winningTeam: null, // 'crewmate' | 'imposter'
+    gameEndReason: '',
+    gameEndInterval: null
   },
 
   channel: null,
@@ -719,6 +725,7 @@ const PartyManager = {
 
       const payload = {
         roomCode: this.state.roomCode,
+        partyName: this.state.partyName || "Alaa's Among Us Game",
         hostName: this.state.hostName,
         players: this.state.players,
         maxPlayers: this.state.maxPlayers || 4,
@@ -727,6 +734,10 @@ const PartyManager = {
         isEmergencyActive: !!this.state.isEmergencyActive,
         discussionSeconds: this.state.discussionSeconds || 90,
         killTimerSeconds: this.state.killTimerSeconds || 40,
+        votes: this.state.votes || {},
+        ejectionResult: this.state.ejectionResult || null,
+        winningTeam: this.state.winningTeam || null,
+        gameEndReason: this.state.gameEndReason || '',
         timestamp: Date.now()
       };
 
@@ -789,7 +800,6 @@ const PartyManager = {
     }
   },
 
-
   playEmergencySiren() {
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -815,11 +825,24 @@ const PartyManager = {
     }
 
     this.state.roomCode = data.roomCode;
+    if (data.partyName !== undefined) this.state.partyName = data.partyName;
     if (data.hostName !== undefined) this.state.hostName = data.hostName;
     if (data.players) this.state.players = data.players;
     if (data.maxPlayers) this.state.maxPlayers = data.maxPlayers;
     if (data.settings) this.state.settings = data.settings;
     if (data.assignedGame) this.state.assignedGame = data.assignedGame;
+    if (data.votes) this.state.votes = data.votes;
+    if (data.ejectionResult !== undefined) this.state.ejectionResult = data.ejectionResult;
+    if (data.winningTeam !== undefined) this.state.winningTeam = data.winningTeam;
+    if (data.gameEndReason !== undefined) this.state.gameEndReason = data.gameEndReason;
+
+    // Update Party Header Titles if set
+    if (this.state.partyName) {
+      const headerTitle = document.getElementById('hostPartyHeaderTitle');
+      if (headerTitle) headerTitle.textContent = this.state.partyName.toUpperCase();
+      const badgeTitle = document.getElementById('hostPartyBadgeTitle');
+      if (badgeTitle) badgeTitle.textContent = `ROOM: ${this.state.roomCode}`;
+    }
 
     // Sync Emergency Meeting State across all devices
     if (data.isEmergencyActive) {
@@ -835,12 +858,18 @@ const PartyManager = {
         this.state.discussionSeconds = data.discussionSeconds;
         this.updateDiscussionTimerDisplay();
       }
+      this.renderVotingGrid();
     } else if (data.isEmergencyActive === false && this.state.isEmergencyActive) {
       this.state.isEmergencyActive = false;
       const hostOverlay = document.getElementById('emergencyMeetingOverlay');
       const clientOverlay = document.getElementById('joinEmergencyMeetingOverlay');
       if (hostOverlay) hostOverlay.style.display = 'none';
       if (clientOverlay) clientOverlay.style.display = 'none';
+    }
+
+    // If winning team set, trigger Game End screen with 10s auto-return!
+    if (this.state.winningTeam) {
+      this.triggerGameEndScreen(this.state.winningTeam, this.state.gameEndReason);
     }
 
     // Refresh Host Lobby & Waiting Room
@@ -857,6 +886,7 @@ const PartyManager = {
         this.renderJoinedPlayerDashboard();
       }
     }
+ }
 
     // If waiting in lobby step and game has started, automatically roll card and view player dashboard!
     const waitingStep = document.getElementById('joinWaitingStep');
@@ -1055,6 +1085,14 @@ const PartyManager = {
     this.state.assignedGame = {
       players: assignedPlayers
     };
+
+    // Reset votes, win state, and start Imposter kill cooldown
+    this.state.votes = {};
+    this.state.ejectionResult = null;
+    this.state.winningTeam = null;
+    this.state.gameEndReason = '';
+    this.state.killTimerSeconds = killCooldown || 40;
+    this.startKillCooldown();
 
     if (this.state.joinedPlayer) {
       const matched = assignedPlayers.find(p => p.name.toLowerCase() === this.state.joinedPlayer.name.toLowerCase());
@@ -1476,6 +1514,23 @@ const PartyManager = {
     }
   },
 
+  createPartySubmit() {
+    const input = document.getElementById('partyNameInput');
+    const val = input ? input.value.trim() : '';
+    this.state.partyName = val || "Alaa's Among Us Game";
+
+    const headerTitle = document.getElementById('hostPartyHeaderTitle');
+    if (headerTitle) headerTitle.textContent = this.state.partyName.toUpperCase();
+    const badgeTitle = document.getElementById('hostPartyBadgeTitle');
+    if (badgeTitle) badgeTitle.textContent = `ROOM: ${this.state.roomCode}`;
+
+    this.showStep('partySetupStep');
+    const hostInput = document.getElementById('hostNameInput');
+    if (hostInput) hostInput.value = this.state.hostName || '';
+    this.renderPlayerChips();
+    this.broadcastStateUpdate();
+  },
+
   renderJoinedPlayerDashboard() {
     const player = this.state.joinedPlayer;
     if (!player) return;
@@ -1499,6 +1554,7 @@ const PartyManager = {
       imposterWidget.style.display = isImposter ? 'block' : 'none';
       if (isImposter) {
         this.updateCooldownDisplay();
+        this.renderImposterTargetsGrid();
       }
     }
 
@@ -1544,12 +1600,300 @@ const PartyManager = {
             this.renderJoinedPlayerDashboard();
             this.updateGlobalTaskProgress();
             this.broadcastStateUpdate();
+            this.checkWinLossConditions();
           });
         });
       }
     }
     this.updateGlobalTaskProgress();
   },
+
+  renderImposterTargetsGrid() {
+    const targetsGrid = document.getElementById('imposterTargetsGrid');
+    if (!targetsGrid || !this.state.assignedGame) return;
+
+    const meName = this.state.joinedPlayer ? this.state.joinedPlayer.name.toLowerCase() : '';
+    const aliveTargets = this.state.assignedGame.players.filter(p => p.alive && p.name.toLowerCase() !== meName && p.role !== 'imposter');
+
+    if (aliveTargets.length === 0) {
+      targetsGrid.innerHTML = `<div style="color:#bdc3c7; font-size:0.85rem; text-align:center; grid-column: 1/-1;">No crewmate targets remaining.</div>`;
+      return;
+    }
+
+    const isReady = (this.state.killTimerSeconds || 0) === 0;
+
+    targetsGrid.innerHTML = aliveTargets.map(p => `
+      <div style="background:rgba(0,0,0,0.4); border:1px solid ${isReady ? '#e74c3c' : 'rgba(255,255,255,0.1)'}; border-radius:8px; padding:0.6rem; text-align:center;">
+        <div style="font-weight:bold; font-size:0.9rem; margin-bottom:0.4rem; color:#fff;">👤 ${p.name}</div>
+        <button class="btn btn-danger btn-sm target-kill-btn" data-target="${p.name}" ${isReady ? '' : 'disabled'} style="width:100%; font-size:0.8rem; font-weight:bold; opacity:${isReady ? '1' : '0.5'};">
+          ${isReady ? '🔪 KILL' : `⏱️ ${this.state.killTimerSeconds}s`}
+        </button>
+      </div>
+    `).join('');
+
+    targetsGrid.querySelectorAll('.target-kill-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const targetName = e.target.getAttribute('data-target');
+        if (targetName) this.killTargetPlayer(targetName);
+      });
+    });
+  },
+
+  killTargetPlayer(targetName) {
+    if (!this.state.assignedGame) return;
+    const target = this.state.assignedGame.players.find(p => p.name.toLowerCase() === targetName.toLowerCase());
+    if (!target || !target.alive) return;
+
+    target.alive = false;
+    this.resetKillCooldown();
+    this.startKillCooldown();
+
+    this.broadcastStateUpdate();
+    this.renderJoinedPlayerDashboard();
+    this.renderDashboardPlayers();
+    this.checkWinLossConditions();
+  },
+
+  renderVotingGrid() {
+    const hostGrid = document.getElementById('hostVotingPlayersGrid');
+    const clientGrid = document.getElementById('clientVotingPlayersGrid');
+    if (!hostGrid && !clientGrid) return;
+    if (!this.state.assignedGame) return;
+
+    const alivePlayers = this.state.assignedGame.players.filter(p => p.alive);
+    const votes = this.state.votes || {};
+
+    // Count votes per target
+    const voteCounts = {};
+    Object.values(votes).forEach(target => {
+      voteCounts[target] = (voteCounts[target] || 0) + 1;
+    });
+
+    const currentVoter = this.state.joinedPlayer ? this.state.joinedPlayer.name : (this.state.hostName || 'Host');
+    const hasVoted = !!votes[currentVoter];
+
+    const optionsHtml = [
+      ...alivePlayers.map(p => {
+        const count = voteCounts[p.name] || 0;
+        const isMyVote = votes[currentVoter] === p.name;
+        return `
+          <div style="background:${isMyVote ? 'rgba(46,204,113,0.2)' : 'rgba(255,255,255,0.08)'}; border:1.5px solid ${isMyVote ? '#2ecc71' : 'rgba(255,255,255,0.15)'}; border-radius:8px; padding:0.6rem; text-align:center;">
+            <div style="font-weight:bold; font-size:0.9rem; margin-bottom:0.3rem;">👤 ${p.name}</div>
+            <div style="font-size:0.75rem; color:#f1c40f; margin-bottom:0.4rem;">🗳️ ${count} vote${count === 1 ? '' : 's'}</div>
+            <button class="btn ${isMyVote ? 'btn-success' : 'btn-primary'} btn-sm vote-btn" data-vname="${p.name}" ${hasVoted ? 'disabled' : ''} style="width:100%; font-size:0.8rem;">
+              ${isMyVote ? '✅ Voted' : '🗳️ Vote'}
+            </button>
+          </div>
+        `;
+      }),
+      (() => {
+        const skipCount = voteCounts['SKIP'] || 0;
+        const isMySkip = votes[currentVoter] === 'SKIP';
+        return `
+          <div style="background:${isMySkip ? 'rgba(241,196,15,0.2)' : 'rgba(255,255,255,0.05)'}; border:1.5px solid ${isMySkip ? '#f1c40f' : 'rgba(255,255,255,0.15)'}; border-radius:8px; padding:0.6rem; text-align:center;">
+            <div style="font-weight:bold; font-size:0.9rem; margin-bottom:0.3rem;">🚫 SKIP VOTE</div>
+            <div style="font-size:0.75rem; color:#f1c40f; margin-bottom:0.4rem;">🗳️ ${skipCount} vote${skipCount === 1 ? '' : 's'}</div>
+            <button class="btn btn-secondary btn-sm vote-btn" data-vname="SKIP" ${hasVoted ? 'disabled' : ''} style="width:100%; font-size:0.8rem;">
+              ${isMySkip ? '✅ Skipped' : '🚫 Skip'}
+            </button>
+          </div>
+        `;
+      })()
+    ].join('');
+
+    [hostGrid, clientGrid].forEach(grid => {
+      if (grid) {
+        grid.innerHTML = optionsHtml;
+        grid.querySelectorAll('.vote-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const vname = e.target.getAttribute('data-vname');
+            if (vname) this.castVote(vname);
+          });
+        });
+      }
+    });
+  },
+
+  castVote(targetName) {
+    const voter = this.state.joinedPlayer ? this.state.joinedPlayer.name : (this.state.hostName || 'Host');
+    if (!this.state.votes) this.state.votes = {};
+    this.state.votes[voter] = targetName;
+
+    this.renderVotingGrid();
+    this.broadcastStateUpdate();
+
+    // If all alive players have voted, trigger tally!
+    if (this.state.assignedGame) {
+      const alivePlayers = this.state.assignedGame.players.filter(p => p.alive);
+      const votedCount = Object.keys(this.state.votes).length;
+      if (votedCount >= alivePlayers.length) {
+        this.tallyVotesAndEject();
+      }
+    }
+  },
+
+  tallyVotesAndEject() {
+    if (!this.state.assignedGame || this.state.isEjecting) return;
+    this.state.isEjecting = true;
+
+    const votes = this.state.votes || {};
+    const voteCounts = {};
+    Object.values(votes).forEach(t => {
+      voteCounts[t] = (voteCounts[t] || 0) + 1;
+    });
+
+    let maxVotes = 0;
+    let topTarget = null;
+    let isTie = false;
+
+    Object.entries(voteCounts).forEach(([target, count]) => {
+      if (count > maxVotes) {
+        maxVotes = count;
+        topTarget = target;
+        isTie = false;
+      } else if (count === maxVotes) {
+        isTie = true;
+      }
+    });
+
+    let message = '';
+    if (!topTarget || topTarget === 'SKIP' || isTie) {
+      message = '🚫 No one was ejected. (Skipped or Tied)';
+    } else {
+      const ejectedPlayer = this.state.assignedGame.players.find(p => p.name.toLowerCase() === topTarget.toLowerCase());
+      if (ejectedPlayer) {
+        ejectedPlayer.alive = false;
+        const isImp = ejectedPlayer.role === 'imposter';
+        message = `🚀 ${ejectedPlayer.name} was ejected! (${isImp ? 'An Imposter 🔪' : 'A Crewmate 🟢'})`;
+      }
+    }
+
+    const hostBanner = document.getElementById('hostVotingResultBanner');
+    const clientBanner = document.getElementById('clientVotingResultBanner');
+    [hostBanner, clientBanner].forEach(b => {
+      if (b) {
+        b.style.display = 'block';
+        b.style.background = 'rgba(231,76,60,0.2)';
+        b.style.color = '#fff';
+        b.textContent = message;
+      }
+    });
+
+    this.state.ejectionResult = message;
+    this.broadcastStateUpdate();
+
+    setTimeout(() => {
+      this.state.isEjecting = false;
+      this.state.votes = {};
+      this.state.ejectionResult = null;
+      [hostBanner, clientBanner].forEach(b => { if (b) b.style.display = 'none'; });
+      this.closeEmergencyMeeting();
+      this.checkWinLossConditions();
+    }, 4000);
+  },
+
+  checkWinLossConditions() {
+    if (!this.state.assignedGame || this.state.winningTeam) return;
+
+    const alivePlayers = this.state.assignedGame.players.filter(p => p.alive);
+    const aliveImposters = alivePlayers.filter(p => p.role === 'imposter').length;
+    const aliveCrewmates = alivePlayers.filter(p => p.role === 'crewmate').length;
+
+    // Calculate global task progress %
+    let totalTasks = 0;
+    let completedTasks = 0;
+    this.state.assignedGame.players.forEach(p => {
+      if (p.role === 'crewmate' && p.tasks) {
+        totalTasks += p.tasks.length;
+        completedTasks += p.tasks.filter(t => t.completed).length;
+      }
+    });
+
+    const isTasks100 = totalTasks > 0 && completedTasks === totalTasks;
+
+    if (aliveImposters === 0) {
+      this.state.winningTeam = 'crewmate';
+      this.state.gameEndReason = 'All Imposters were identified and ejected from the ship!';
+      this.broadcastStateUpdate();
+      this.triggerGameEndScreen('crewmate', this.state.gameEndReason);
+    } else if (isTasks100) {
+      this.state.winningTeam = 'crewmate';
+      this.state.gameEndReason = 'Crewmates completed 100% of all real-life tasks!';
+      this.broadcastStateUpdate();
+      this.triggerGameEndScreen('crewmate', this.state.gameEndReason);
+    } else if (aliveImposters >= aliveCrewmates) {
+      this.state.winningTeam = 'imposter';
+      this.state.gameEndReason = 'Imposters eliminated enough crewmates to take over!';
+      this.broadcastStateUpdate();
+      this.triggerGameEndScreen('imposter', this.state.gameEndReason);
+    }
+  },
+
+  triggerGameEndScreen(winningTeam, reason) {
+    const modal = document.getElementById('gameEndModal');
+    if (!modal) return;
+
+    modal.classList.add('active');
+
+    const localPlayer = this.state.joinedPlayer || (this.state.assignedGame ? this.state.assignedGame.players.find(p => p.name.toLowerCase() === (this.state.hostName || '').toLowerCase()) : null);
+    const localRole = localPlayer ? localPlayer.role : 'crewmate';
+    const isWinner = localRole === winningTeam;
+
+    const iconEl = document.getElementById('gameEndIcon');
+    const titleEl = document.getElementById('gameEndTitle');
+    const subEl = document.getElementById('gameEndSubtitle');
+
+    if (isWinner) {
+      if (iconEl) iconEl.textContent = '🏆';
+      if (titleEl) { titleEl.textContent = 'VICTORY!'; titleEl.style.color = '#2ecc71'; }
+      if (subEl) subEl.textContent = `🎉 YOUR TEAM (${winningTeam.toUpperCase()}) WON! ${reason}`;
+    } else {
+      if (iconEl) iconEl.textContent = '💀';
+      if (titleEl) { titleEl.textContent = 'DEFEAT!'; titleEl.style.color = '#e74c3c'; }
+      if (subEl) subEl.textContent = `💀 DEFEAT! ${reason}`;
+    }
+
+    if (this.state.gameEndInterval) clearInterval(this.state.gameEndInterval);
+    this.state.gameEndCountdown = 10;
+    const cdText = document.getElementById('gameEndCountdownText');
+    if (cdText) cdText.textContent = '10';
+
+    this.state.gameEndInterval = setInterval(() => {
+      if (this.state.gameEndCountdown > 0) {
+        this.state.gameEndCountdown--;
+        if (cdText) cdText.textContent = String(this.state.gameEndCountdown);
+      } else {
+        clearInterval(this.state.gameEndInterval);
+        this.resetGameToLobbySetup();
+      }
+    }, 1000);
+  },
+
+  resetGameToLobbySetup() {
+    if (this.state.gameEndInterval) clearInterval(this.state.gameEndInterval);
+    this.pauseKillCooldown();
+    this.pauseDiscussionTimer();
+
+    this.state.assignedGame = null;
+    this.state.votes = {};
+    this.state.ejectionResult = null;
+    this.state.winningTeam = null;
+    this.state.gameEndReason = '';
+
+    const endModal = document.getElementById('gameEndModal');
+    if (endModal) endModal.classList.remove('active');
+
+    const joinModal = document.getElementById('joinPartyModal');
+    if (joinModal) joinModal.classList.remove('active');
+
+    // Open Host Party Modal at the Setup Lobby step (user screenshot screen!)
+    const partyModal = document.getElementById('partyModal');
+    if (partyModal) partyModal.classList.add('active');
+    this.showStep('partySetupStep');
+    this.renderPlayerChips();
+    this.broadcastStateUpdate();
+  },
+
 
   updateCooldownDisplay() {
     const el = document.getElementById('cooldownDisplay');
@@ -1872,16 +2216,19 @@ const PartyManager = {
   },
 
   bindEvents() {
-    // Open Host Party Modal
+    // Open Host Party Modal at Party Naming Pre-Screen
     const hostBtn = document.getElementById('hostPartyBtn');
     if (hostBtn) {
       hostBtn.addEventListener('click', () => {
         document.getElementById('partyModal').classList.add('active');
-        this.showStep('partySetupStep');
-        const hostInput = document.getElementById('hostNameInput');
-        if (hostInput) hostInput.value = this.state.hostName || '';
-        this.renderPlayerChips();
+        this.showStep('partyNameStep');
       });
+    }
+
+    // Create Party Submit (Name -> Lobby Setup)
+    const createPartyBtn = document.getElementById('createPartySubmitBtn');
+    if (createPartyBtn) {
+      createPartyBtn.addEventListener('click', () => this.createPartySubmit());
     }
 
     // Host Name Input Live Sync
@@ -2038,6 +2385,9 @@ const PartyManager = {
     document.getElementById('joinPauseCooldownBtn')?.addEventListener('click', () => this.pauseKillCooldown());
     document.getElementById('joinResetCooldownBtn')?.addEventListener('click', () => this.resetKillCooldown());
 
+    // Game End Return Now Button
+    document.getElementById('gameEndReturnNowBtn')?.addEventListener('click', () => this.resetGameToLobbySetup());
+
     // Share Public Room Link buttons
     document.getElementById('shareRoomLinkBtn')?.addEventListener('click', () => this.copyPublicRoomLink());
     document.getElementById('shareRoomLinkBtnDash')?.addEventListener('click', () => this.copyPublicRoomLink());
@@ -2055,8 +2405,8 @@ const PartyManager = {
     });
 
     // End Game Reset & Play Again
-    document.getElementById('endGameResetBtn')?.addEventListener('click', () => this.showStep('partySetupStep'));
-    document.getElementById('playAgainBtn')?.addEventListener('click', () => this.showStep('partySetupStep'));
+    document.getElementById('endGameResetBtn')?.addEventListener('click', () => this.resetGameToLobbySetup());
+    document.getElementById('playAgainBtn')?.addEventListener('click', () => this.resetGameToLobbySetup());
   }
 };
 
