@@ -479,8 +479,8 @@
 
         <div class="party-join-card-panel" style="max-width: 500px; margin: 0 auto;">
           <div class="form-group">
-            <label for="partyNameInput" style="font-weight:bold; color:#f1c40f; font-size:1rem;">🎉 Party Name / Room Title:</label>
-            <input type="text" id="partyNameInput" placeholder="Enter party name (e.g. Alaa's Among Us Game)..." maxlength="25" class="party-input input-lg" value="Alaa's Among Us Game">
+            <label for="partyNameInputPre" style="font-weight:bold; color:#f1c40f; font-size:1rem;">🎉 Party Name / Room Title:</label>
+            <input type="text" id="partyNameInputPre" placeholder="e.g. Ahmed's Among Us Night..." maxlength="25" class="party-input input-lg" value="">
           </div>
 
           <div class="party-footer-row" style="justify-content: center; margin-top: 1.5rem;">
@@ -507,8 +507,8 @@
 
         <div class="party-card-panel" style="margin-bottom: 1.25rem;">
           <div class="form-group" style="margin-bottom: 0.75rem;">
-            <label for="partyNameInput" style="font-weight:bold; color:#f1c40f; font-size:1rem;">🎉 Party Name / Room Title:</label>
-            <input type="text" id="partyNameInput" placeholder="Enter party name (e.g. Alaa's Among Us Game)..." maxlength="25" class="party-input input-lg" value="Alaa's Among Us Game">
+            <label style="font-weight:bold; color:#f1c40f; font-size:1rem;">🎉 Party Name / Room Title:</label>
+            <input type="text" id="partyNameInput" placeholder="Enter party name..." maxlength="25" class="party-input input-lg" value="">
           </div>
           <div class="form-group" style="margin-bottom:0;">
             <label for="hostNameInput" style="font-weight:bold; color:#f1c40f;">👑 Host Name (Your Player Name):</label>
@@ -598,8 +598,8 @@
           <p>Keep your identity and tasks secret from other players!</p>
         </div>
 
-        <!-- GAME HOST CONTROL BAR (Host switches player to roll) -->
-        <div class="host-control-bar" id="hostRevealControlBar">
+        <!-- GAME HOST CONTROL BAR (Hidden - each player uses confirm buttons) -->
+        <div class="host-control-bar" id="hostRevealControlBar" style="display:none;">
           <div style="display:flex; align-items:center; gap:0.6rem; color:#f1c40f; font-weight:bold;">
             <span style="font-size:1.2rem;">👑</span>
             <span>HOST CONTROL:</span>
@@ -893,7 +893,7 @@
         </div>
 
         <!-- PHOTOREALISTIC 3D METALLIC EMERGENCY MEETING BUTTON (Matching Photo) -->
-        <div class="emergency-plate-container">
+        <div class="emergency-plate-container" id="clientEmergencyPlate">
           <div class="metallic-base-plate">
             <div class="plate-screw screw-tl"></div>
             <div class="plate-screw screw-tr"></div>
@@ -909,6 +909,10 @@
             <div class="stencil-plate-text">EMERGENCY MEETING</div>
             <div class="stencil-sub-text">DO NOT PRESS UNLESS EMERGENCY</div>
           </div>
+          <!-- Emergency cooldown indicator for crewmates -->
+          <div id="clientEmergencyCooldownBadge" style="display:none; text-align:center; margin-top:0.5rem; font-family:var(--font-mono); font-size:0.85rem; color:#e74c3c; font-weight:bold;">⏱️ COOLDOWN: <span id="clientEmergencyCooldownText">25s</span></div>
+          <!-- Imposter cannot use emergency -->
+          <div id="clientImposterNoEmergency" style="display:none; text-align:center; margin-top:0.5rem; font-family:var(--font-mono); font-size:0.8rem; color:#7f8c8d;">🔒 IMPOSTERS CANNOT CALL MEETINGS</div>
         </div>
 
         <div class="join-player-view-container">
@@ -977,18 +981,18 @@
 
   <!-- Victory / Defeat Overlay Modal with 10-Second Auto-Return -->
   <div class="modal-overlay" id="gameEndModal" style="z-index: 10000;">
-    <div class="modal-content party-modal-content" style="text-align: center; max-width: 550px; background: radial-gradient(circle, #2c3e50 0%, #111 100%); border: 3px solid #f1c40f;">
-      <div id="gameEndIcon" style="font-size: 5rem; margin-bottom: 0.5rem;">🎉</div>
-      <h2 id="gameEndTitle" style="font-family: var(--font-heading); font-size: 2.2rem; font-weight: 900; color: #2ecc71; margin-bottom: 0.5rem;">VICTORY!</h2>
-      <p id="gameEndSubtitle" style="font-size: 1.1rem; color: #ecf0f1; margin-bottom: 1.5rem;">Crewmates completed all tasks and ejected the imposters!</p>
+    <div class="modal-content party-modal-content" id="gameEndModalContent" style="text-align: center; max-width: 500px; width: 92vw; background: radial-gradient(circle at 30% 30%, #2c3e50 0%, #111 100%); border: 3px solid #f1c40f; border-radius: 20px; padding: 2rem 1.5rem;">
+      <div id="gameEndIcon" style="font-size: 5rem; margin-bottom: 0.5rem; line-height:1;">🏆</div>
+      <h2 id="gameEndTitle" style="font-family: var(--font-heading); font-size: 2rem; font-weight: 900; color: #2ecc71; margin-bottom: 0.4rem; letter-spacing:1px;">VICTORY!</h2>
+      <p id="gameEndSubtitle" style="font-size: 1rem; color: #ecf0f1; margin-bottom: 1.5rem; line-height:1.5;">Crewmates completed all tasks and ejected the imposters!</p>
       
-      <div class="auto-return-box" style="background: rgba(0,0,0,0.5); border: 1px dashed rgba(241,196,15,0.5); padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem;">
-        <span style="color: #f1c40f; font-weight: bold; font-family: var(--font-mono); font-size: 0.95rem;">
-          ⌛ RETURNING TO HOST LOBBY SETUP IN <span id="gameEndCountdownText" style="font-size: 1.5rem; color: #e74c3c;">10</span>s...
+      <div class="auto-return-box" style="background: rgba(0,0,0,0.5); border: 1px dashed rgba(241,196,15,0.5); padding: 0.85rem 1rem; border-radius: 12px; margin-bottom: 1.25rem;">
+        <span style="color: #f1c40f; font-weight: bold; font-family: var(--font-mono); font-size: 0.9rem;">
+          ⌛ RETURNING TO HOST LOBBY SETUP IN <span id="gameEndCountdownText" style="font-size: 1.4rem; color: #e74c3c;">10</span>s...
         </span>
       </div>
 
-      <button class="btn btn-primary btn-lg" id="gameEndReturnNowBtn" style="width: 100%; font-weight: bold;">
+      <button class="btn btn-primary btn-lg" id="gameEndReturnNowBtn" style="width: 100%; font-weight: bold; font-size: 1rem; padding: 0.85rem;">
         🔄 Return to Lobby Setup Now
       </button>
     </div>

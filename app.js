@@ -663,7 +663,7 @@ const PartyManager = {
   state: {
     roomCode: '',
     hostName: '',
-    partyName: "Alaa's Among Us Game",
+    partyName: '',
     players: [],
     maxPlayers: 4,
     settings: {
@@ -684,7 +684,10 @@ const PartyManager = {
     ejectionResult: null,
     winningTeam: null, // 'crewmate' | 'imposter'
     gameEndReason: '',
-    gameEndInterval: null
+    gameEndInterval: null,
+    emergencyCooldownSeconds: 0,
+    emergencyCooldownInterval: null,
+    emergencyUsedByTask: false
   },
 
   channel: null,
@@ -725,7 +728,7 @@ const PartyManager = {
 
       const payload = {
         roomCode: this.state.roomCode,
-        partyName: this.state.partyName || "Alaa's Among Us Game",
+        partyName: this.state.partyName || 'My Among Us Game',
         hostName: this.state.hostName,
         players: this.state.players,
         maxPlayers: this.state.maxPlayers || 4,
@@ -738,6 +741,7 @@ const PartyManager = {
         ejectionResult: this.state.ejectionResult || null,
         winningTeam: this.state.winningTeam || null,
         gameEndReason: this.state.gameEndReason || '',
+        emergencyCooldownSeconds: this.state.emergencyCooldownSeconds || 0,
         timestamp: Date.now()
       };
 
@@ -835,6 +839,10 @@ const PartyManager = {
     if (data.ejectionResult !== undefined) this.state.ejectionResult = data.ejectionResult;
     if (data.winningTeam !== undefined) this.state.winningTeam = data.winningTeam;
     if (data.gameEndReason !== undefined) this.state.gameEndReason = data.gameEndReason;
+    if (data.emergencyCooldownSeconds !== undefined) {
+      this.state.emergencyCooldownSeconds = data.emergencyCooldownSeconds;
+      this.updateEmergencyButtonState();
+    }
 
     // Update Party Header Titles if set
     if (this.state.partyName) {
@@ -1092,6 +1100,8 @@ const PartyManager = {
     this.state.gameEndReason = '';
     this.state.killTimerSeconds = killCooldown || 40;
     this.startKillCooldown();
+    // Emergency button starts on 25s cooldown at game start
+    this.startEmergencyCooldown(25);
 
     if (this.state.joinedPlayer) {
       const matched = assignedPlayers.find(p => p.name.toLowerCase() === this.state.joinedPlayer.name.toLowerCase());
@@ -1514,9 +1524,14 @@ const PartyManager = {
   },
 
   createPartySubmit() {
-    const input = document.getElementById('partyNameInput');
-    const val = input ? input.value.trim() : '';
-    this.state.partyName = val || "Alaa's Among Us Game";
+    // Read from the pre-screen input (partyNameInputPre) first, then the lobby input
+    const preInput = document.getElementById('partyNameInputPre');
+    const lobbyInput = document.getElementById('partyNameInput');
+    const val = (preInput ? preInput.value.trim() : '') || (lobbyInput ? lobbyInput.value.trim() : '');
+    this.state.partyName = val || 'My Among Us Game';
+
+    // Sync the lobby input field with what was entered
+    if (lobbyInput) lobbyInput.value = this.state.partyName;
 
     const headerTitle = document.getElementById('hostPartyHeaderTitle');
     if (headerTitle) headerTitle.textContent = this.state.partyName.toUpperCase();
@@ -1557,6 +1572,9 @@ const PartyManager = {
       }
     }
 
+    // Update emergency button state based on role and cooldown
+    this.updateEmergencyButtonState();
+
     const tasksContainer = document.getElementById('joinTasksListContainer');
     const taskTag = document.getElementById('joinTaskCountTag');
 
@@ -1595,11 +1613,21 @@ const PartyManager = {
         tasksContainer.querySelectorAll('input[type="checkbox"]').forEach(chk => {
           chk.addEventListener('change', (e) => {
             const idx = parseInt(e.target.getAttribute('data-jidx'));
+            const wasCompleted = player.tasks[idx].completed;
             player.tasks[idx].completed = e.target.checked;
             this.renderJoinedPlayerDashboard();
             this.updateGlobalTaskProgress();
             this.broadcastStateUpdate();
             this.checkWinLossConditions();
+            // If crewmate just completed a task and emergency is on cooldown, clear cooldown
+            if (e.target.checked && !wasCompleted && !this.state.isEmergencyActive) {
+              if (this.state.emergencyCooldownInterval) {
+                clearInterval(this.state.emergencyCooldownInterval);
+                this.state.emergencyCooldownInterval = null;
+              }
+              this.state.emergencyCooldownSeconds = 0;
+              this.updateEmergencyButtonState();
+            }
           });
         });
       }
@@ -1838,18 +1866,21 @@ const PartyManager = {
     const localRole = localPlayer ? localPlayer.role : 'crewmate';
     const isWinner = localRole === winningTeam;
 
+    const modalContent = document.getElementById('gameEndModalContent');
     const iconEl = document.getElementById('gameEndIcon');
     const titleEl = document.getElementById('gameEndTitle');
     const subEl = document.getElementById('gameEndSubtitle');
 
     if (isWinner) {
+      if (modalContent) modalContent.style.borderColor = '#f1c40f';
       if (iconEl) iconEl.textContent = '🏆';
       if (titleEl) { titleEl.textContent = 'VICTORY!'; titleEl.style.color = '#2ecc71'; }
       if (subEl) subEl.textContent = `🎉 YOUR TEAM (${winningTeam.toUpperCase()}) WON! ${reason}`;
     } else {
+      if (modalContent) modalContent.style.borderColor = '#e74c3c';
       if (iconEl) iconEl.textContent = '💀';
       if (titleEl) { titleEl.textContent = 'DEFEAT!'; titleEl.style.color = '#e74c3c'; }
-      if (subEl) subEl.textContent = `💀 DEFEAT! ${reason}`;
+      if (subEl) subEl.textContent = `💀 YOU LOST! ${reason}`;
     }
 
     if (this.state.gameEndInterval) clearInterval(this.state.gameEndInterval);
@@ -1870,6 +1901,7 @@ const PartyManager = {
 
   resetGameToLobbySetup() {
     if (this.state.gameEndInterval) clearInterval(this.state.gameEndInterval);
+    if (this.state.emergencyCooldownInterval) clearInterval(this.state.emergencyCooldownInterval);
     this.pauseKillCooldown();
     this.pauseDiscussionTimer();
 
@@ -1878,6 +1910,8 @@ const PartyManager = {
     this.state.ejectionResult = null;
     this.state.winningTeam = null;
     this.state.gameEndReason = '';
+    this.state.emergencyCooldownSeconds = 0;
+    this.state.emergencyCooldownInterval = null;
 
     const endModal = document.getElementById('gameEndModal');
     if (endModal) endModal.classList.remove('active');
@@ -1885,10 +1919,13 @@ const PartyManager = {
     const joinModal = document.getElementById('joinPartyModal');
     if (joinModal) joinModal.classList.remove('active');
 
-    // Open Host Party Modal at the Setup Lobby step (user screenshot screen!)
+    // Open Host Party Modal at the Name Party pre-screen step
     const partyModal = document.getElementById('partyModal');
     if (partyModal) partyModal.classList.add('active');
-    this.showStep('partySetupStep');
+    this.showStep('partyNameStep');
+    // Clear pre-screen input for new game
+    const preInput = document.getElementById('partyNameInputPre');
+    if (preInput) preInput.value = '';
     this.renderPlayerChips();
     this.broadcastStateUpdate();
   },
@@ -1926,15 +1963,7 @@ const PartyManager = {
       } else {
         clearInterval(this.state.killTimerInterval);
         this.state.isCooldownRunning = false;
-        try {
-          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          const osc = audioCtx.createOscillator();
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-          osc.connect(audioCtx.destination);
-          osc.start();
-          osc.stop(audioCtx.currentTime + 0.5);
-        } catch(e) {}
+        // NO SOUND — silent when kill is ready (to avoid revealing imposter)
         this.broadcastStateUpdate();
       }
     }, 1000);
@@ -1959,12 +1988,17 @@ const PartyManager = {
 
     this.state.isEmergencyActive = true;
     this.state.discussionSeconds = 90;
+    // Reset votes for fresh meeting
+    this.state.votes = {};
+    this.state.ejectionResult = null;
 
     const hostOverlay = document.getElementById('emergencyMeetingOverlay');
     const clientOverlay = document.getElementById('joinEmergencyMeetingOverlay');
     if (hostOverlay) hostOverlay.style.display = 'flex';
     if (clientOverlay) clientOverlay.style.display = 'flex';
 
+    // Render all alive player names in voting grid
+    this.renderVotingGrid();
     this.updateDiscussionTimerDisplay();
     this.broadcastStateUpdate();
   },
@@ -2012,7 +2046,59 @@ const PartyManager = {
     if (clientOverlay) clientOverlay.style.display = 'none';
 
     this.resetKillCooldown();
+    // Start emergency button cooldown (25 seconds) after meeting ends
+    this.startEmergencyCooldown(25);
     this.broadcastStateUpdate();
+  },
+
+  // Emergency Button Cooldown (for crewmates only — 25s after meeting or task completion)
+  startEmergencyCooldown(seconds) {
+    if (this.state.emergencyCooldownInterval) clearInterval(this.state.emergencyCooldownInterval);
+    this.state.emergencyCooldownSeconds = seconds || 25;
+    this.updateEmergencyButtonState();
+
+    this.state.emergencyCooldownInterval = setInterval(() => {
+      if (this.state.emergencyCooldownSeconds > 0) {
+        this.state.emergencyCooldownSeconds--;
+        this.updateEmergencyButtonState();
+      } else {
+        clearInterval(this.state.emergencyCooldownInterval);
+        this.state.emergencyCooldownInterval = null;
+        this.state.emergencyCooldownSeconds = 0;
+        this.updateEmergencyButtonState();
+      }
+    }, 1000);
+  },
+
+  updateEmergencyButtonState() {
+    const player = this.state.joinedPlayer;
+    const isImposter = player && player.role === 'imposter';
+    const cooldownSecs = this.state.emergencyCooldownSeconds || 0;
+    const isOnCooldown = cooldownSecs > 0;
+
+    // Client emergency button
+    const clientBtn = document.getElementById('clientEmergencyBtn');
+    const cooldownBadge = document.getElementById('clientEmergencyCooldownBadge');
+    const cooldownText = document.getElementById('clientEmergencyCooldownText');
+    const imposterLabel = document.getElementById('clientImposterNoEmergency');
+
+    if (isImposter) {
+      // Imposters: disable button, show label
+      if (clientBtn) { clientBtn.disabled = true; clientBtn.style.opacity = '0.4'; clientBtn.style.cursor = 'not-allowed'; }
+      if (cooldownBadge) cooldownBadge.style.display = 'none';
+      if (imposterLabel) imposterLabel.style.display = 'block';
+    } else if (isOnCooldown) {
+      // Crewmates on cooldown: disable button, show timer
+      if (clientBtn) { clientBtn.disabled = true; clientBtn.style.opacity = '0.5'; clientBtn.style.cursor = 'not-allowed'; }
+      if (cooldownBadge) { cooldownBadge.style.display = 'block'; }
+      if (cooldownText) cooldownText.textContent = `${cooldownSecs}s`;
+      if (imposterLabel) imposterLabel.style.display = 'none';
+    } else {
+      // Crewmates ready: enable button
+      if (clientBtn) { clientBtn.disabled = false; clientBtn.style.opacity = '1'; clientBtn.style.cursor = 'pointer'; }
+      if (cooldownBadge) cooldownBadge.style.display = 'none';
+      if (imposterLabel) imposterLabel.style.display = 'none';
+    }
   },
 
   copyPublicRoomLink() {
@@ -2232,8 +2318,9 @@ const PartyManager = {
           this.renderDashboardPlayers();
         } else {
           this.showStep('partyNameStep');
-          const nameInput = document.getElementById('partyNameInput');
-          if (nameInput) nameInput.value = this.state.partyName || "Alaa's Among Us Game";
+          // Clear the pre-screen input so user types their own name
+          const preInput = document.getElementById('partyNameInputPre');
+          if (preInput) preInput.value = '';
         }
       });
     }
@@ -2244,12 +2331,20 @@ const PartyManager = {
       createPartyBtn.addEventListener('click', () => this.createPartySubmit());
     }
 
-    // Party Name Input Live Sync
+    // Party Pre-Screen Name Input Live Sync (partyNameInputPre)
+    const partyNameInputPre = document.getElementById('partyNameInputPre');
+    if (partyNameInputPre) {
+      partyNameInputPre.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') this.createPartySubmit();
+      });
+    }
+
+    // Party Lobby Name Input Live Sync
     const partyNameInput = document.getElementById('partyNameInput');
     if (partyNameInput) {
       partyNameInput.addEventListener('input', (e) => {
         const val = e.target.value.trim();
-        this.state.partyName = val || "Alaa's Among Us Game";
+        this.state.partyName = val || 'My Among Us Game';
         const headerTitle = document.getElementById('hostPartyHeaderTitle');
         if (headerTitle) headerTitle.textContent = this.state.partyName.toUpperCase();
         this.broadcastStateUpdate();
