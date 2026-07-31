@@ -689,7 +689,8 @@ const PartyManager = {
     emergencyCooldownInterval: null,
     emergencyUsedByTask: false,
     isDisbanded: false,
-    hasRolledCard: false
+    hasRolledCard: false,
+    npcPlayers: []
   },
 
   channel: null,
@@ -733,6 +734,7 @@ const PartyManager = {
         partyName: this.state.partyName || 'My Among Us Game',
         hostName: this.state.hostName,
         players: this.state.players,
+        npcPlayers: this.state.npcPlayers || [],
         maxPlayers: this.state.maxPlayers || 4,
         settings: this.state.settings,
         assignedGame: this.state.assignedGame,
@@ -836,6 +838,7 @@ const PartyManager = {
     if (data.partyName !== undefined) this.state.partyName = data.partyName;
     if (data.hostName !== undefined) this.state.hostName = data.hostName;
     if (data.players) this.state.players = data.players;
+    if (data.npcPlayers) this.state.npcPlayers = data.npcPlayers;
     if (data.maxPlayers) this.state.maxPlayers = data.maxPlayers;
     if (data.settings) this.state.settings = data.settings;
     if (data.assignedGame) this.state.assignedGame = data.assignedGame;
@@ -1015,9 +1018,11 @@ const PartyManager = {
     } else {
       listEl.innerHTML = this.state.players.map((name, idx) => {
         const isHost = (this.state.hostName && name.toLowerCase() === this.state.hostName.toLowerCase());
+        const isNpc = this.state.npcPlayers && this.state.npcPlayers.some(n => n.toLowerCase() === name.toLowerCase());
+        const npcBadge = isNpc ? `<small class="npc-badge" style="background:rgba(230,126,34,0.25); color:#e67e22; border:1px solid rgba(230,126,34,0.4); font-size:0.75rem; padding:1px 6px; border-radius:8px; margin-left:5px; font-weight:bold;">(npc)</small>` : '';
         return `
           <div class="player-chip ${isHost ? 'host-chip' : ''}">
-            <span>${isHost ? '👑' : '👤'} ${name}</span>
+            <span>${isHost ? '👑' : '👤'} ${name}${npcBadge}</span>
             <button class="remove-p-btn" data-idx="${idx}">&times;</button>
           </div>
         `;
@@ -1031,6 +1036,9 @@ const PartyManager = {
             this.state.hostName = '';
             const hostInput = document.getElementById('hostNameInput');
             if (hostInput) hostInput.value = '';
+          }
+          if (removedName && this.state.npcPlayers) {
+            this.state.npcPlayers = this.state.npcPlayers.filter(n => n.toLowerCase() !== removedName.toLowerCase());
           }
           this.state.players.splice(idx, 1);
           this.renderPlayerChips();
@@ -1051,6 +1059,10 @@ const PartyManager = {
     if (this.state.players.some(p => p.toLowerCase() === trimmed.toLowerCase())) {
       alert(`Player name "${trimmed}" already exists in the room! Please use a unique player name.`);
       return;
+    }
+    if (!this.state.npcPlayers) this.state.npcPlayers = [];
+    if (!this.state.npcPlayers.some(n => n.toLowerCase() === trimmed.toLowerCase())) {
+      this.state.npcPlayers.push(trimmed);
     }
     this.state.players.push(trimmed);
     this.renderPlayerChips();
@@ -1183,12 +1195,15 @@ const PartyManager = {
 
     const player = this.state.assignedGame.players[curIdx];
 
-    document.getElementById('revealPlayerTitle').textContent = `Pass device to ${player.name} (${curIdx + 1}/${totalPlayers})`;
-    document.getElementById('curtainPlayerName').textContent = player.name;
+    const isCurrentPlayerNpc = this.state.npcPlayers && this.state.npcPlayers.some(n => n.toLowerCase() === player.name.toLowerCase());
+    const isHostDevice = !this.state.joinedPlayer;
+
+    document.getElementById('revealPlayerTitle').textContent = `Pass device to ${player.name}${isCurrentPlayerNpc ? ' (npc)' : ''} (${curIdx + 1}/${totalPlayers})`;
+    document.getElementById('curtainPlayerName').textContent = `${player.name}${isCurrentPlayerNpc ? ' (npc)' : ''}`;
 
     const progressBadge = document.getElementById('hostPlayerProgressBadge');
     if (progressBadge) {
-      progressBadge.textContent = `Player ${curIdx + 1} of ${totalPlayers} (${player.name})`;
+      progressBadge.textContent = `Player ${curIdx + 1} of ${totalPlayers} (${player.name}${isCurrentPlayerNpc ? ' npc' : ''})`;
     }
 
     const hostBtn = document.getElementById('hostSwitchNextPlayerBtn');
@@ -1203,8 +1218,16 @@ const PartyManager = {
     }
 
     const myPlayerName = (this.state.joinedPlayer ? this.state.joinedPlayer.name : this.state.hostName) || '';
-    const isMyTurn = (!myPlayerName && !this.state.joinedPlayer && !this.state.hostName) || 
-                     (myPlayerName && myPlayerName.trim().toLowerCase() === player.name.trim().toLowerCase());
+    
+    let isMyTurn = false;
+    if (isCurrentPlayerNpc) {
+      // For NPC player (no real device), host device can see & click the roll button!
+      isMyTurn = isHostDevice;
+    } else {
+      // For real human player, ONLY that player's real device can see & click the roll button
+      isMyTurn = (!myPlayerName && !this.state.joinedPlayer && !this.state.hostName) || 
+                 (myPlayerName && myPlayerName.trim().toLowerCase() === player.name.trim().toLowerCase());
+    }
 
     const revealBtn = document.getElementById('revealCardBtn');
     const waitingNotice = document.getElementById('curtainWaitingNotice');
@@ -1223,7 +1246,7 @@ const PartyManager = {
           <div style="background:rgba(241,196,15,0.15); border:1.5px solid rgba(241,196,15,0.4); border-radius:12px; padding:1.25rem; text-align:center; margin-top:1rem;">
             <div style="font-size:2.5rem; margin-bottom:0.5rem;" class="auto-return-box">⌛</div>
             <h3 style="color:#f1c40f; font-size:1.15rem; margin-bottom:0.4rem;">WAITING FOR YOUR TURN TO ROLL...</h3>
-            <p style="color:#ecf0f1; font-size:0.95rem;">Current Turn: <strong>👤 ${player.name}</strong> (${curIdx + 1}/${totalPlayers})</p>
+            <p style="color:#ecf0f1; font-size:0.95rem;">Current Turn: <strong>👤 ${player.name}${isCurrentPlayerNpc ? ' (npc)' : ''}</strong> (${curIdx + 1}/${totalPlayers})</p>
             <p style="color:#bdc3c7; font-size:0.85rem; margin-top:0.5rem; font-style:italic;">Please wait until ${player.name} finishes rolling their secret role & tasks!</p>
           </div>
         `;
@@ -1526,9 +1549,15 @@ const PartyManager = {
     this.state.roomCode = existingRoom.roomCode;
     this.state.hostName = existingRoom.hostName || '';
     this.state.players = existingRoom.players || [];
+    this.state.npcPlayers = existingRoom.npcPlayers || [];
     this.state.maxPlayers = existingRoom.maxPlayers || 4;
     if (existingRoom.settings) this.state.settings = existingRoom.settings;
     if (existingRoom.assignedGame) this.state.assignedGame = existingRoom.assignedGame;
+
+    // If real player joins with the name of an NPC, remove the NPC tag!
+    if (this.state.npcPlayers) {
+      this.state.npcPlayers = this.state.npcPlayers.filter(n => n.toLowerCase() !== trimmedName.toLowerCase());
+    }
 
     const isAlreadyInRoom = this.state.players.some(p => p.toLowerCase() === trimmedName.toLowerCase());
 
@@ -1606,11 +1635,15 @@ const PartyManager = {
 
     const chipsEl = document.getElementById('waitingPlayersChips');
     if (chipsEl) {
-      chipsEl.innerHTML = this.state.players.map(p => `
-        <div class="player-chip">
-          <span>👤 ${p}</span>
-        </div>
-      `).join('');
+      chipsEl.innerHTML = this.state.players.map(p => {
+        const isNpc = this.state.npcPlayers && this.state.npcPlayers.some(n => n.toLowerCase() === p.toLowerCase());
+        const npcBadge = isNpc ? `<small class="npc-badge" style="background:rgba(230,126,34,0.25); color:#e67e22; border:1px solid rgba(230,126,34,0.4); font-size:0.75rem; padding:1px 6px; border-radius:8px; margin-left:5px; font-weight:bold;">(npc)</small>` : '';
+        return `
+          <div class="player-chip">
+            <span>👤 ${p}${npcBadge}</span>
+          </div>
+        `;
+      }).join('');
     }
   },
 
