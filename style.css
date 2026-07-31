@@ -2443,9 +2443,10 @@ body {
 
 /* ===== EXTRA SMALL PHONES (<= 430px) ===== */
 @media screen and (max-width: 430px) {
-  .header-party-actions .btn-party-host span,
-  .header-party-actions .btn-party-join span {
-    display: none; /* icon only on very narrow */
+  .header-party-actions .btn-party-host,
+  .header-party-actions .btn-party-join {
+    font-size: 0.76rem;
+    padding: 0.45rem 0.4rem;
   }
 
   .bp-tasks-row, .bp-roles-grid {
