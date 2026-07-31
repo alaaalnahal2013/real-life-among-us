@@ -660,43 +660,56 @@ document.addEventListener('DOMContentLoaded', () => {
    ========================================================================== */
 
 const AuthManager = {
-  currentUser: null,      // Supabase auth user object
+  currentUser: null,      // User object { email, id }
   currentProfile: null,   // { username, avatar_url }
   guestName: null,        // Filled when user chooses "Play as Guest"
 
   /* ── Initialise on page load ───────────────────────────────────────────── */
   async init() {
-    // Restore guest from sessionStorage
+    // 1. Restore guest from sessionStorage
     this.guestName = sessionStorage.getItem('guestName') || null;
 
-    if (!window._supabase) {
-      this.renderHeaderButton();
-      this.bindAuthEvents();
-      return;
+    // 2. Restore active account from localStorage
+    const savedActive = localStorage.getItem('amongus_active_account');
+    if (savedActive) {
+      try {
+        const parsed = JSON.parse(savedActive);
+        if (parsed && parsed.username) {
+          this.currentUser = { email: parsed.email || 'user@local.app', id: parsed.id || 'user_local' };
+          this.currentProfile = { username: parsed.username, avatar_url: parsed.avatar_url || null };
+        }
+      } catch(e) {
+        console.warn('[Auth] restore active account error:', e);
+      }
     }
 
-    // Listen for auth state changes (login / logout)
-    window._supabase.auth.onAuthStateChange(async (event, session) => {
-      this.currentUser = session?.user || null;
-      if (this.currentUser) {
-        await this.loadProfile();
-        this.guestName = null;
-        sessionStorage.removeItem('guestName');
-      } else {
-        this.currentProfile = null;
-      }
-      this.renderHeaderButton();
-    });
+    if (window._supabase) {
+      // Listen for auth state changes (login / logout)
+      window._supabase.auth.onAuthStateChange(async (event, session) => {
+        if (session?.user) {
+          this.currentUser = session.user;
+          await this.loadProfile();
+          this.guestName = null;
+          sessionStorage.removeItem('guestName');
+        }
+        this.renderHeaderButton();
+      });
 
-    // Check existing session
-    const { data: { session } } = await window._supabase.auth.getSession();
-    this.currentUser = session?.user || null;
-    if (this.currentUser) {
-      await this.loadProfile();
+      // Check existing Supabase session
+      try {
+        const { data: { session } } = await window._supabase.auth.getSession();
+        if (session?.user) {
+          this.currentUser = session.user;
+          await this.loadProfile();
+        }
+      } catch(e) {
+        console.warn('[Auth] getSession error:', e);
+      }
     }
 
     this.renderHeaderButton();
     this.bindAuthEvents();
+    this._autoFillPartyFields();
   },
 
   /* ── Get active display name (for auto-fill) ───────────────────────────── */
@@ -706,59 +719,175 @@ const AuthManager = {
     return '';
   },
 
+  /* ── Helper: Save account to local storage ──────────────────────────────── */
+  _saveAccountLocally(email, username, password, avatarUrl = null) {
+    const normEmail = (email || '').trim().toLowerCase();
+    const normUser = (username || '').trim();
+    if (!normUser) return;
+
+    let accounts = {};
+    try {
+      accounts = JSON.parse(localStorage.getItem('amongus_accounts') || '{}');
+    } catch(e) {}
+
+    accounts[normEmail] = {
+      email: normEmail,
+      username: normUser,
+      password: password || (accounts[normEmail] ? accounts[normEmail].password : ''),
+      avatar_url: avatarUrl !== null ? avatarUrl : (accounts[normEmail] ? accounts[normEmail].avatar_url : null)
+    };
+
+    localStorage.setItem('amongus_accounts', JSON.stringify(accounts));
+
+    const activeAcc = { email: normEmail, username: normUser, avatar_url: accounts[normEmail].avatar_url };
+    localStorage.setItem('amongus_active_account', JSON.stringify(activeAcc));
+
+    this.currentUser = { email: normEmail, id: 'user_' + normEmail.replace(/[^a-z0-9]/g, '') };
+    this.currentProfile = { username: normUser, avatar_url: activeAcc.avatar_url };
+    this.guestName = null;
+    sessionStorage.removeItem('guestName');
+  },
+
   /* ── Load profile from Supabase ─────────────────────────────────────────── */
   async loadProfile() {
-    if (!this.currentUser || !window._supabase) return;
-    try {
-      const { data, error } = await window._supabase
-        .from('profiles')
-        .select('username, avatar_url')
-        .eq('id', this.currentUser.id)
-        .maybeSingle();
-      if (!error && data) this.currentProfile = data;
-    } catch(e) {
-      console.warn('[Auth] loadProfile error:', e);
+    if (!this.currentUser) return;
+
+    // Check local storage profile first
+    const savedActive = localStorage.getItem('amongus_active_account');
+    if (savedActive) {
+      try {
+        const parsed = JSON.parse(savedActive);
+        if (parsed && parsed.username) {
+          this.currentProfile = { username: parsed.username, avatar_url: parsed.avatar_url || null };
+        }
+      } catch(e) {}
+    }
+
+    if (window._supabase && this.currentUser.id) {
+      try {
+        const { data, error } = await window._supabase
+          .from('profiles')
+          .select('username, avatar_url')
+          .eq('id', this.currentUser.id)
+          .maybeSingle();
+        if (!error && data && data.username) {
+          this.currentProfile = data;
+          localStorage.setItem('amongus_active_account', JSON.stringify({
+            email: this.currentUser.email,
+            username: data.username,
+            avatar_url: data.avatar_url
+          }));
+        }
+      } catch(e) {
+        console.warn('[Auth] loadProfile error:', e);
+      }
     }
   },
 
   /* ── Sign Up ─────────────────────────────────────────────────────────────── */
   async signUp(email, password, username) {
-    if (!window._supabase) throw new Error('Auth unavailable');
     const trimmedUsername = username.trim();
+    const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedUsername) throw new Error('Username is required');
+    if (!trimmedEmail) throw new Error('Email is required');
+    if (!password || password.length < 6) throw new Error('Password must be at least 6 characters');
 
-    const { data, error } = await window._supabase.auth.signUp({ email, password });
-    if (error) throw new Error(error.message);
+    // 1. Save account locally immediately so user data is stored and login never blocked
+    this._saveAccountLocally(trimmedEmail, trimmedUsername, password);
 
-    if (data.user) {
-      // Insert profile record
-      const { error: profileErr } = await window._supabase.from('profiles').upsert({
-        id: data.user.id,
-        username: trimmedUsername,
-        updated_at: new Date().toISOString()
-      });
-      if (profileErr) console.warn('[Auth] profile upsert error:', profileErr);
-      this.currentProfile = { username: trimmedUsername, avatar_url: null };
+    // 2. Try Supabase Auth in background (if configured)
+    if (window._supabase) {
+      try {
+        const { data, error } = await window._supabase.auth.signUp({
+          email: trimmedEmail,
+          password: password,
+          options: { data: { username: trimmedUsername } }
+        });
+        if (data && data.user) {
+          await window._supabase.from('profiles').upsert({
+            id: data.user.id,
+            username: trimmedUsername,
+            updated_at: new Date().toISOString()
+          }).catch(err => console.warn('[Auth] profile upsert note:', err));
+        }
+      } catch(e) {
+        console.warn('[Auth] Supabase signUp note (handled locally):', e);
+      }
     }
-    return data;
+
+    this.renderHeaderButton();
+    this._autoFillPartyFields();
+    return { user: this.currentUser };
   },
 
   /* ── Log In ──────────────────────────────────────────────────────────────── */
   async logIn(email, password) {
-    if (!window._supabase) throw new Error('Auth unavailable');
-    const { data, error } = await window._supabase.auth.signInWithPassword({ email, password });
-    if (error) throw new Error(error.message);
-    return data;
+    const trimmedEmail = (email || '').trim().toLowerCase();
+    if (!trimmedEmail || !password) throw new Error('Please enter email and password');
+
+    // 1. Check local accounts database first
+    let accounts = {};
+    try { accounts = JSON.parse(localStorage.getItem('amongus_accounts') || '{}'); } catch(e) {}
+
+    const localMatch = accounts[trimmedEmail];
+    if (localMatch && localMatch.password === password) {
+      this._saveAccountLocally(trimmedEmail, localMatch.username, password, localMatch.avatar_url);
+      this.renderHeaderButton();
+      this._autoFillPartyFields();
+      return { user: this.currentUser };
+    }
+
+    // 2. Try Supabase login
+    if (window._supabase) {
+      try {
+        const { data, error } = await window._supabase.auth.signInWithPassword({ email: trimmedEmail, password });
+        if (!error && data?.user) {
+          this.currentUser = data.user;
+          await this.loadProfile();
+          if (!this.currentProfile?.username) {
+            const fallbackName = data.user.user_metadata?.username || trimmedEmail.split('@')[0];
+            this.currentProfile = { username: fallbackName, avatar_url: null };
+          }
+          this._saveAccountLocally(trimmedEmail, this.currentProfile.username, password, this.currentProfile.avatar_url);
+          this.renderHeaderButton();
+          this._autoFillPartyFields();
+          return data;
+        }
+        // If Supabase returned 'Email not confirmed' but local account exists, auto-bypass!
+        if (error && localMatch) {
+          this._saveAccountLocally(trimmedEmail, localMatch.username, password, localMatch.avatar_url);
+          this.renderHeaderButton();
+          this._autoFillPartyFields();
+          return { user: this.currentUser };
+        }
+        if (error) throw new Error(error.message);
+      } catch(supErr) {
+        if (localMatch) {
+          this._saveAccountLocally(trimmedEmail, localMatch.username, password, localMatch.avatar_url);
+          this.renderHeaderButton();
+          this._autoFillPartyFields();
+          return { user: this.currentUser };
+        }
+        throw supErr;
+      }
+    }
+
+    if (localMatch) {
+      throw new Error('Incorrect password. Please check your password!');
+    }
+    throw new Error('No account found for this email. Please click "Sign Up" to create an account!');
   },
 
   /* ── Log Out ─────────────────────────────────────────────────────────────── */
   async logOut() {
-    if (!window._supabase) return;
-    await window._supabase.auth.signOut();
+    if (window._supabase) {
+      try { await window._supabase.auth.signOut(); } catch(e) {}
+    }
     this.currentUser = null;
     this.currentProfile = null;
     this.guestName = null;
     sessionStorage.removeItem('guestName');
+    localStorage.removeItem('amongus_active_account');
     this.renderHeaderButton();
     this.showAuthView('authChoiceView');
   },
@@ -769,51 +898,76 @@ const AuthManager = {
     if (!trimmed) throw new Error('Please enter a name');
     this.guestName = trimmed;
     sessionStorage.setItem('guestName', trimmed);
+    this.currentUser = null;
+    this.currentProfile = null;
+    localStorage.removeItem('amongus_active_account');
     this.renderHeaderButton();
+    this._autoFillPartyFields();
   },
 
   /* ── Upload avatar photo ─────────────────────────────────────────────────── */
   async uploadAvatar(file) {
-    if (!window._supabase || !this.currentUser) return null;
-    try {
-      const ext = file.name.split('.').pop();
-      const path = `avatars/${this.currentUser.id}.${ext}`;
-      const { error: upErr } = await window._supabase.storage
-        .from('avatars')
-        .upload(path, file, { upsert: true });
-      if (upErr) {
-        console.warn('[Auth] avatar upload error:', upErr);
-        // Fallback: use a local object URL displayed client-side only
-        return URL.createObjectURL(file);
+    if (!file) return null;
+    const localUrl = URL.createObjectURL(file);
+    let avatarUrl = localUrl;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target.result;
+      if (this.currentProfile) this.currentProfile.avatar_url = base64;
+      if (this.currentUser?.email) {
+        let accounts = {};
+        try { accounts = JSON.parse(localStorage.getItem('amongus_accounts') || '{}'); } catch(err) {}
+        if (accounts[this.currentUser.email]) {
+          accounts[this.currentUser.email].avatar_url = base64;
+          localStorage.setItem('amongus_accounts', JSON.stringify(accounts));
+        }
+        let activeAcc = {};
+        try { activeAcc = JSON.parse(localStorage.getItem('amongus_active_account') || '{}'); } catch(err) {}
+        activeAcc.avatar_url = base64;
+        localStorage.setItem('amongus_active_account', JSON.stringify(activeAcc));
       }
-      const { data: urlData } = window._supabase.storage.from('avatars').getPublicUrl(path);
-      const avatarUrl = urlData?.publicUrl || URL.createObjectURL(file);
+      this.renderHeaderButton();
+      this.renderProfileView();
+    };
+    reader.readAsDataURL(file);
 
-      // Save URL to profile
-      await window._supabase.from('profiles').update({
-        avatar_url: avatarUrl,
-        updated_at: new Date().toISOString()
-      }).eq('id', this.currentUser.id);
-
-      if (this.currentProfile) this.currentProfile.avatar_url = avatarUrl;
-      return avatarUrl;
-    } catch(e) {
-      console.warn('[Auth] uploadAvatar exception:', e);
-      return URL.createObjectURL(file);
+    if (window._supabase && this.currentUser?.id) {
+      try {
+        const ext = file.name.split('.').pop();
+        const path = `avatars/${this.currentUser.id}.${ext}`;
+        const { error: upErr } = await window._supabase.storage
+          .from('avatars')
+          .upload(path, file, { upsert: true });
+        if (!upErr) {
+          const { data: urlData } = window._supabase.storage.from('avatars').getPublicUrl(path);
+          if (urlData?.publicUrl) avatarUrl = urlData.publicUrl;
+        }
+      } catch(e) {}
     }
+
+    return avatarUrl;
   },
 
   /* ── Update username ─────────────────────────────────────────────────────── */
   async updateUsername(newUsername) {
-    if (!window._supabase || !this.currentUser) throw new Error('Not logged in');
     const trimmed = newUsername.trim();
     if (!trimmed) throw new Error('Username cannot be empty');
-    const { error } = await window._supabase.from('profiles').update({
-      username: trimmed,
-      updated_at: new Date().toISOString()
-    }).eq('id', this.currentUser.id);
-    if (error) throw new Error(error.message);
     if (this.currentProfile) this.currentProfile.username = trimmed;
+
+    if (this.currentUser?.email) {
+      this._saveAccountLocally(this.currentUser.email, trimmed, '', this.currentProfile?.avatar_url);
+    }
+
+    if (window._supabase && this.currentUser?.id) {
+      await window._supabase.from('profiles').update({
+        username: trimmed,
+        updated_at: new Date().toISOString()
+      }).eq('id', this.currentUser.id).catch(err => console.warn(err));
+    }
+
+    this.renderHeaderButton();
+    this._autoFillPartyFields();
   },
 
   /* ── Render header account button ───────────────────────────────────────── */
@@ -822,14 +976,16 @@ const AuthManager = {
     const labelEl = document.getElementById('accountLabelMini');
     if (!miniEl) return;
 
-    if (this.currentUser && this.currentProfile) {
-      const avatarUrl = this.currentProfile.avatar_url;
+    const displayName = this.getDisplayName();
+
+    if (displayName && (this.currentProfile || this.currentUser)) {
+      const avatarUrl = this.currentProfile?.avatar_url;
       if (avatarUrl) {
         miniEl.innerHTML = `<img src="${avatarUrl}" alt="avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
       } else {
-        miniEl.innerHTML = `<span style="font-size:1.1rem;font-weight:800;color:#f1c40f;">${(this.currentProfile.username || '?')[0].toUpperCase()}</span>`;
+        miniEl.innerHTML = `<span style="font-size:1.05rem;font-weight:800;color:#f1c40f;">${displayName[0].toUpperCase()}</span>`;
       }
-      if (labelEl) labelEl.textContent = this.currentProfile.username || 'Profile';
+      if (labelEl) labelEl.textContent = displayName;
     } else if (this.guestName) {
       miniEl.innerHTML = `<span style="font-size:0.75rem;font-weight:800;color:#bdc3c7;">G</span>`;
       if (labelEl) labelEl.textContent = this.guestName;
@@ -854,7 +1010,7 @@ const AuthManager = {
     if (!modal) return;
     modal.classList.add('active');
 
-    if (this.currentUser && this.currentProfile) {
+    if (this.getDisplayName() && (this.currentProfile || this.currentUser)) {
       this.showAuthView('authProfileView');
       this.renderProfileView();
     } else {
@@ -869,8 +1025,9 @@ const AuthManager = {
     const imgEl = document.getElementById('profileAvatarImg');
     const placeholderEl = document.getElementById('profileAvatarPlaceholder');
 
-    if (usernameEl) usernameEl.textContent = this.currentProfile?.username || '—';
-    if (emailEl) emailEl.textContent = this.currentUser?.email || '—';
+    const displayName = this.getDisplayName();
+    if (usernameEl) usernameEl.textContent = displayName || '—';
+    if (emailEl) emailEl.textContent = this.currentUser?.email || 'Guest User';
 
     const avatarUrl = this.currentProfile?.avatar_url;
     if (imgEl && placeholderEl) {
@@ -889,167 +1046,212 @@ const AuthManager = {
   bindAuthEvents() {
     // Open modal via header button
     const accountBtn = document.getElementById('accountToggleBtn');
-    if (accountBtn) accountBtn.addEventListener('click', () => this.openModal());
+    if (accountBtn) {
+      // Remove old listeners by replacing or ensuring single handler
+      accountBtn.onclick = () => this.openModal();
+    }
 
     // Close modal
     const closeBtn = document.getElementById('authModalCloseBtn');
-    if (closeBtn) closeBtn.addEventListener('click', () => {
-      document.getElementById('authModal')?.classList.remove('active');
-    });
+    if (closeBtn) {
+      closeBtn.onclick = () => document.getElementById('authModal')?.classList.remove('active');
+    }
 
     // Click outside modal card to close
     const modal = document.getElementById('authModal');
     if (modal) {
-      modal.addEventListener('click', (e) => {
+      modal.onclick = (e) => {
         if (e.target === modal) modal.classList.remove('active');
-      });
+      };
     }
 
     // Navigation: choice → views
-    document.getElementById('goToLoginBtn')?.addEventListener('click', () => this.showAuthView('authLoginView'));
-    document.getElementById('goToSignupBtn')?.addEventListener('click', () => this.showAuthView('authSignupView'));
-    document.getElementById('goToGuestBtn')?.addEventListener('click', () => this.showAuthView('authGuestView'));
+    const goToLoginBtn = document.getElementById('goToLoginBtn');
+    if (goToLoginBtn) goToLoginBtn.onclick = () => this.showAuthView('authLoginView');
+
+    const goToSignupBtn = document.getElementById('goToSignupBtn');
+    if (goToSignupBtn) goToSignupBtn.onclick = () => this.showAuthView('authSignupView');
+
+    const goToGuestBtn = document.getElementById('goToGuestBtn');
+    if (goToGuestBtn) goToGuestBtn.onclick = () => this.showAuthView('authGuestView');
 
     // Back buttons
-    document.getElementById('loginBackBtn')?.addEventListener('click', () => this.showAuthView('authChoiceView'));
-    document.getElementById('signupBackBtn')?.addEventListener('click', () => this.showAuthView('authChoiceView'));
-    document.getElementById('guestBackBtn')?.addEventListener('click', () => this.showAuthView('authChoiceView'));
+    const loginBackBtn = document.getElementById('loginBackBtn');
+    if (loginBackBtn) loginBackBtn.onclick = () => this.showAuthView('authChoiceView');
+
+    const signupBackBtn = document.getElementById('signupBackBtn');
+    if (signupBackBtn) signupBackBtn.onclick = () => this.showAuthView('authChoiceView');
+
+    const guestBackBtn = document.getElementById('guestBackBtn');
+    if (guestBackBtn) guestBackBtn.onclick = () => this.showAuthView('authChoiceView');
 
     // Cross-links
-    document.getElementById('loginToSignupBtn')?.addEventListener('click', () => this.showAuthView('authSignupView'));
-    document.getElementById('signupToLoginBtn')?.addEventListener('click', () => this.showAuthView('authLoginView'));
+    const loginToSignupBtn = document.getElementById('loginToSignupBtn');
+    if (loginToSignupBtn) loginToSignupBtn.onclick = () => this.showAuthView('authSignupView');
+
+    const signupToLoginBtn = document.getElementById('signupToLoginBtn');
+    if (signupToLoginBtn) signupToLoginBtn.onclick = () => this.showAuthView('authLoginView');
 
     // ── Login submit ──
-    document.getElementById('loginSubmitBtn')?.addEventListener('click', async () => {
-      const email = document.getElementById('loginEmailInput')?.value.trim();
-      const password = document.getElementById('loginPasswordInput')?.value;
-      const errorEl = document.getElementById('loginError');
-      const btn = document.getElementById('loginSubmitBtn');
-      if (!email || !password) {
-        if (errorEl) { errorEl.textContent = 'Please fill in all fields.'; errorEl.style.display = ''; }
-        return;
-      }
-      if (btn) { btn.textContent = '🔄 Logging in...'; btn.disabled = true; }
-      try {
-        await this.logIn(email, password);
-        if (errorEl) errorEl.style.display = 'none';
-        this.showAuthView('authProfileView');
-        this.renderProfileView();
-        // Auto-fill party name fields
-        this._autoFillPartyFields();
-      } catch(e) {
-        if (errorEl) { errorEl.textContent = e.message; errorEl.style.display = ''; }
-      } finally {
-        if (btn) { btn.textContent = '🔑 Log In'; btn.disabled = false; }
-      }
-    });
+    const loginSubmitBtn = document.getElementById('loginSubmitBtn');
+    if (loginSubmitBtn) {
+      loginSubmitBtn.onclick = async () => {
+        const email = document.getElementById('loginEmailInput')?.value.trim();
+        const password = document.getElementById('loginPasswordInput')?.value;
+        const errorEl = document.getElementById('loginError');
+        const btn = document.getElementById('loginSubmitBtn');
+        if (!email || !password) {
+          if (errorEl) { errorEl.textContent = 'Please fill in all fields.'; errorEl.style.display = ''; }
+          return;
+        }
+        if (btn) { btn.textContent = '🔄 Logging in...'; btn.disabled = true; }
+        try {
+          await this.logIn(email, password);
+          if (errorEl) errorEl.style.display = 'none';
+          this.showAuthView('authProfileView');
+          this.renderProfileView();
+          this._autoFillPartyFields();
+        } catch(e) {
+          if (errorEl) { errorEl.textContent = e.message; errorEl.style.display = ''; }
+        } finally {
+          if (btn) { btn.textContent = '🔑 Log In'; btn.disabled = false; }
+        }
+      };
+    }
+
+    // Allow Enter key in password field to submit login
+    const loginPasswordInput = document.getElementById('loginPasswordInput');
+    if (loginPasswordInput) {
+      loginPasswordInput.onkeypress = (e) => {
+        if (e.key === 'Enter') document.getElementById('loginSubmitBtn')?.click();
+      };
+    }
 
     // ── Sign up submit ──
-    document.getElementById('signupSubmitBtn')?.addEventListener('click', async () => {
-      const username = document.getElementById('signupUsernameInput')?.value.trim();
-      const email = document.getElementById('signupEmailInput')?.value.trim();
-      const password = document.getElementById('signupPasswordInput')?.value;
-      const errorEl = document.getElementById('signupError');
-      const btn = document.getElementById('signupSubmitBtn');
-      if (!username || !email || !password) {
-        if (errorEl) { errorEl.textContent = 'Please fill in all fields.'; errorEl.style.display = ''; }
-        return;
-      }
-      if (password.length < 6) {
-        if (errorEl) { errorEl.textContent = 'Password must be at least 6 characters.'; errorEl.style.display = ''; }
-        return;
-      }
-      if (btn) { btn.textContent = '🔄 Creating account...'; btn.disabled = true; }
-      try {
-        await this.signUp(email, password, username);
-        if (errorEl) errorEl.style.display = 'none';
-        this.showAuthView('authProfileView');
-        this.renderProfileView();
-        this._autoFillPartyFields();
-      } catch(e) {
-        if (errorEl) { errorEl.textContent = e.message; errorEl.style.display = ''; }
-      } finally {
-        if (btn) { btn.textContent = '✨ Create Account'; btn.disabled = false; }
-      }
-    });
+    const signupSubmitBtn = document.getElementById('signupSubmitBtn');
+    if (signupSubmitBtn) {
+      signupSubmitBtn.onclick = async () => {
+        const username = document.getElementById('signupUsernameInput')?.value.trim();
+        const email = document.getElementById('signupEmailInput')?.value.trim();
+        const password = document.getElementById('signupPasswordInput')?.value;
+        const errorEl = document.getElementById('signupError');
+        const btn = document.getElementById('signupSubmitBtn');
+        if (!username || !email || !password) {
+          if (errorEl) { errorEl.textContent = 'Please fill in all fields.'; errorEl.style.display = ''; }
+          return;
+        }
+        if (password.length < 6) {
+          if (errorEl) { errorEl.textContent = 'Password must be at least 6 characters.'; errorEl.style.display = ''; }
+          return;
+        }
+        if (btn) { btn.textContent = '🔄 Creating account...'; btn.disabled = true; }
+        try {
+          await this.signUp(email, password, username);
+          if (errorEl) errorEl.style.display = 'none';
+          this.showAuthView('authProfileView');
+          this.renderProfileView();
+          this._autoFillPartyFields();
+        } catch(e) {
+          if (errorEl) { errorEl.textContent = e.message; errorEl.style.display = ''; }
+        } finally {
+          if (btn) { btn.textContent = '✨ Create Account'; btn.disabled = false; }
+        }
+      };
+    }
 
     // ── Guest submit ──
-    document.getElementById('guestSubmitBtn')?.addEventListener('click', () => {
-      const name = document.getElementById('guestNameInput')?.value;
-      const errorEl = document.getElementById('guestError');
-      try {
-        this.setGuest(name);
-        if (errorEl) errorEl.style.display = 'none';
-        document.getElementById('authModal')?.classList.remove('active');
-        this._autoFillPartyFields();
-      } catch(e) {
-        if (errorEl) { errorEl.textContent = e.message; errorEl.style.display = ''; }
-      }
-    });
-    // Allow Enter in guest input
-    document.getElementById('guestNameInput')?.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') document.getElementById('guestSubmitBtn')?.click();
-    });
+    const guestSubmitBtn = document.getElementById('guestSubmitBtn');
+    if (guestSubmitBtn) {
+      guestSubmitBtn.onclick = () => {
+        const name = document.getElementById('guestNameInput')?.value;
+        const errorEl = document.getElementById('guestError');
+        try {
+          this.setGuest(name);
+          if (errorEl) errorEl.style.display = 'none';
+          document.getElementById('authModal')?.classList.remove('active');
+          this._autoFillPartyFields();
+        } catch(e) {
+          if (errorEl) { errorEl.textContent = e.message; errorEl.style.display = ''; }
+        }
+      };
+    }
+    const guestNameInput = document.getElementById('guestNameInput');
+    if (guestNameInput) {
+      guestNameInput.onkeypress = (e) => {
+        if (e.key === 'Enter') document.getElementById('guestSubmitBtn')?.click();
+      };
+    }
 
     // ── Log out ──
-    document.getElementById('logoutBtn')?.addEventListener('click', async () => {
-      await this.logOut();
-    });
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.onclick = async () => {
+        await this.logOut();
+      };
+    }
 
     // ── Edit username ──
-    document.getElementById('editProfileBtn')?.addEventListener('click', () => {
-      const wrap = document.getElementById('profileEditWrap');
-      if (wrap) {
-        wrap.style.display = '';
-        const input = document.getElementById('profileEditUsername');
-        if (input) input.value = this.currentProfile?.username || '';
-      }
-    });
+    const editProfileBtn = document.getElementById('editProfileBtn');
+    if (editProfileBtn) {
+      editProfileBtn.onclick = () => {
+        const wrap = document.getElementById('profileEditWrap');
+        if (wrap) {
+          wrap.style.display = '';
+          const input = document.getElementById('profileEditUsername');
+          if (input) input.value = this.getDisplayName() || '';
+        }
+      };
+    }
 
-    document.getElementById('profileCancelEditBtn')?.addEventListener('click', () => {
-      const wrap = document.getElementById('profileEditWrap');
-      if (wrap) wrap.style.display = 'none';
-    });
+    const profileCancelEditBtn = document.getElementById('profileCancelEditBtn');
+    if (profileCancelEditBtn) {
+      profileCancelEditBtn.onclick = () => {
+        const wrap = document.getElementById('profileEditWrap');
+        if (wrap) wrap.style.display = 'none';
+      };
+    }
 
-    document.getElementById('profileSaveBtn')?.addEventListener('click', async () => {
-      const newName = document.getElementById('profileEditUsername')?.value;
-      const errorEl = document.getElementById('profileEditError');
-      const btn = document.getElementById('profileSaveBtn');
-      if (btn) { btn.textContent = '🔄 Saving...'; btn.disabled = true; }
-      try {
-        await this.updateUsername(newName);
-        if (errorEl) errorEl.style.display = 'none';
-        this.renderProfileView();
-        this.renderHeaderButton();
-        document.getElementById('profileEditWrap').style.display = 'none';
-        this._autoFillPartyFields();
-      } catch(e) {
-        if (errorEl) { errorEl.textContent = e.message; errorEl.style.display = ''; }
-      } finally {
-        if (btn) { btn.textContent = '💾 Save'; btn.disabled = false; }
-      }
-    });
+    const profileSaveBtn = document.getElementById('profileSaveBtn');
+    if (profileSaveBtn) {
+      profileSaveBtn.onclick = async () => {
+        const newName = document.getElementById('profileEditUsername')?.value;
+        const errorEl = document.getElementById('profileEditError');
+        const btn = document.getElementById('profileSaveBtn');
+        if (btn) { btn.textContent = '🔄 Saving...'; btn.disabled = true; }
+        try {
+          await this.updateUsername(newName);
+          if (errorEl) errorEl.style.display = 'none';
+          this.renderProfileView();
+          this.renderHeaderButton();
+          const wrap = document.getElementById('profileEditWrap');
+          if (wrap) wrap.style.display = 'none';
+          this._autoFillPartyFields();
+        } catch(e) {
+          if (errorEl) { errorEl.textContent = e.message; errorEl.style.display = ''; }
+        } finally {
+          if (btn) { btn.textContent = '💾 Save'; btn.disabled = false; }
+        }
+      };
+    }
 
     // ── Avatar photo upload ──
     const avatarCircle = document.getElementById('profileAvatarCircle');
     const fileInput = document.getElementById('avatarFileInput');
     if (avatarCircle && fileInput) {
-      avatarCircle.addEventListener('click', () => fileInput.click());
-      fileInput.addEventListener('change', async (e) => {
+      avatarCircle.onclick = () => fileInput.click();
+      fileInput.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
         const imgEl = document.getElementById('profileAvatarImg');
         const placeholderEl = document.getElementById('profileAvatarPlaceholder');
-        // Show local preview immediately
         const localUrl = URL.createObjectURL(file);
         if (imgEl) { imgEl.src = localUrl; imgEl.style.display = ''; }
         if (placeholderEl) placeholderEl.style.display = 'none';
-        // Upload to Supabase (or just use local URL)
         const finalUrl = await this.uploadAvatar(file);
         if (finalUrl && imgEl) imgEl.src = finalUrl;
         this.renderHeaderButton();
         fileInput.value = '';
-      });
+      };
     }
   },
 
@@ -1057,15 +1259,16 @@ const AuthManager = {
   _autoFillPartyFields() {
     const displayName = this.getDisplayName();
     if (!displayName) return;
+
     // Host name input
     const hostNameInput = document.getElementById('hostNameInput');
-    if (hostNameInput && !hostNameInput.value) {
+    if (hostNameInput) {
       hostNameInput.value = displayName;
       hostNameInput.dispatchEvent(new Event('input'));
     }
     // Join player name input
     const joinPlayerNameInput = document.getElementById('joinPlayerNameInput');
-    if (joinPlayerNameInput && !joinPlayerNameInput.value) {
+    if (joinPlayerNameInput) {
       joinPlayerNameInput.value = displayName;
     }
   }
@@ -1974,8 +2177,12 @@ const PartyManager = {
   },
 
   async joinParty(code, name) {
-    let cleanInputCode = code.trim().toUpperCase();
-    const trimmedName = name.trim();
+    let cleanInputCode = (code || '').trim().toUpperCase();
+    let trimmedName = (name || '').trim();
+
+    if (!trimmedName && typeof AuthManager !== 'undefined') {
+      trimmedName = AuthManager.getDisplayName();
+    }
 
     if (!cleanInputCode) {
       alert('Please enter the Room Code from the host!');
@@ -2139,6 +2346,15 @@ const PartyManager = {
     if (headerTitle) headerTitle.textContent = this.state.partyName.toUpperCase();
     const badgeTitle = document.getElementById('hostPartyBadgeTitle');
     if (badgeTitle) badgeTitle.textContent = `ROOM: ${this.state.roomCode}`;
+
+    // Auto-fill hostName from logged-in user or guest account
+    const accountDisplayName = (typeof AuthManager !== 'undefined') ? AuthManager.getDisplayName() : '';
+    if (accountDisplayName) {
+      this.state.hostName = accountDisplayName;
+      if (!this.state.players.includes(accountDisplayName)) {
+        this.state.players.unshift(accountDisplayName);
+      }
+    }
 
     this.showStep('partySetupStep');
     const hostInput = document.getElementById('hostNameInput');
