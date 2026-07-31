@@ -841,11 +841,16 @@ const PartyManager = {
     if (data.assignedGame) this.state.assignedGame = data.assignedGame;
     if (data.votes) this.state.votes = data.votes;
     if (data.isDisbanded) {
+      if (this.state.isDisbanded) return;
       this.state.assignedGame = null;
       this.state.players = [];
       this.state.joinedPlayer = null;
+      this.state.votes = {};
+      this.state.ejectionResult = null;
+      this.state.winningTeam = null;
       this.state.isDisbanded = true;
       this.state.hasRolledCard = false;
+      this.state.roomCode = '';
 
       this.pauseKillCooldown();
       this.pauseDiscussionTimer();
@@ -855,6 +860,10 @@ const PartyManager = {
       const joinModal = document.getElementById('joinPartyModal');
       if (partyModal) partyModal.classList.remove('active');
       if (joinModal) joinModal.classList.remove('active');
+
+      if (window.location.hash && window.location.hash.includes('room=')) {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
 
       alert('💥 The party room has been disbanded by the host!');
       return;
@@ -2397,6 +2406,8 @@ const PartyManager = {
     if (this.state.emergencyCooldownInterval) clearInterval(this.state.emergencyCooldownInterval);
 
     this.broadcastStateUpdate();
+
+    this.state.roomCode = '';
 
     document.getElementById('partyModal')?.classList.remove('active');
     document.getElementById('joinPartyModal')?.classList.remove('active');
