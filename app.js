@@ -687,7 +687,9 @@ const PartyManager = {
     gameEndInterval: null,
     emergencyCooldownSeconds: 0,
     emergencyCooldownInterval: null,
-    emergencyUsedByTask: false
+    emergencyUsedByTask: false,
+    isDisbanded: false,
+    hasRolledCard: false
   },
 
   channel: null,
@@ -742,6 +744,7 @@ const PartyManager = {
         winningTeam: this.state.winningTeam || null,
         gameEndReason: this.state.gameEndReason || '',
         emergencyCooldownSeconds: this.state.emergencyCooldownSeconds || 0,
+        isDisbanded: !!this.state.isDisbanded,
         timestamp: Date.now()
       };
 
@@ -836,6 +839,26 @@ const PartyManager = {
     if (data.settings) this.state.settings = data.settings;
     if (data.assignedGame) this.state.assignedGame = data.assignedGame;
     if (data.votes) this.state.votes = data.votes;
+    if (data.isDisbanded) {
+      this.state.assignedGame = null;
+      this.state.players = [];
+      this.state.joinedPlayer = null;
+      this.state.isDisbanded = true;
+      this.state.hasRolledCard = false;
+
+      this.pauseKillCooldown();
+      this.pauseDiscussionTimer();
+      if (this.state.emergencyCooldownInterval) clearInterval(this.state.emergencyCooldownInterval);
+
+      const partyModal = document.getElementById('partyModal');
+      const joinModal = document.getElementById('joinPartyModal');
+      if (partyModal) partyModal.classList.remove('active');
+      if (joinModal) joinModal.classList.remove('active');
+
+      alert('💥 The party room has been disbanded by the host!');
+      return;
+    }
+
     if (data.ejectionResult !== undefined) this.state.ejectionResult = data.ejectionResult;
     if (data.winningTeam !== undefined) this.state.winningTeam = data.winningTeam;
     if (data.gameEndReason !== undefined) this.state.gameEndReason = data.gameEndReason;
@@ -899,7 +922,8 @@ const PartyManager = {
     const waitingStep = document.getElementById('joinWaitingStep');
     if (waitingStep && waitingStep.classList.contains('active') && this.state.assignedGame && this.state.joinedPlayer) {
       const matched = this.state.assignedGame.players.find(p => p.name.toLowerCase() === this.state.joinedPlayer.name.toLowerCase());
-      if (matched) {
+      if (matched && !this.state.hasRolledCard) {
+        this.state.hasRolledCard = true;
         this.state.joinedPlayer = matched;
         this.triggerSequentialCardRollingAnimation(matched, () => {
           this.showStepInModal('joinPartyModal', 'joinDashboardStep');
@@ -1509,21 +1533,12 @@ const PartyManager = {
         </div>
       `).join('');
     }
-
-    // If game is active, transition player from waiting lobby to player dashboard with card rolling!
-    if (this.state.assignedGame && this.state.joinedPlayer) {
-      const matched = this.state.assignedGame.players.find(p => p.name.toLowerCase() === this.state.joinedPlayer.name.toLowerCase());
-      if (matched) {
-        this.state.joinedPlayer = matched;
-        this.triggerSequentialCardRollingAnimation(matched, () => {
-          this.showStepInModal('joinPartyModal', 'joinDashboardStep');
-          this.renderJoinedPlayerDashboard();
-        });
-      }
-    }
   },
 
   createPartySubmit() {
+    this.state.assignedGame = null;
+    this.state.isDisbanded = false;
+    this.state.hasRolledCard = false;
     // Read from the pre-screen input (partyNameInputPre) first, then the lobby input
     const preInput = document.getElementById('partyNameInputPre');
     const lobbyInput = document.getElementById('partyNameInput');
@@ -1912,6 +1927,7 @@ const PartyManager = {
     this.state.gameEndReason = '';
     this.state.emergencyCooldownSeconds = 0;
     this.state.emergencyCooldownInterval = null;
+    this.state.hasRolledCard = false;
 
     const endModal = document.getElementById('gameEndModal');
     if (endModal) endModal.classList.remove('active');
@@ -2307,6 +2323,36 @@ const PartyManager = {
     document.getElementById('joinPartyModal').classList.remove('active');
   },
 
+  disbandParty() {
+    if (!confirm("⚠️ Are you sure you want to disband this party room?\n\nThis will disconnect all players and reset the room.")) {
+      return;
+    }
+
+    this.state.assignedGame = null;
+    this.state.players = [];
+    this.state.joinedPlayer = null;
+    this.state.votes = {};
+    this.state.ejectionResult = null;
+    this.state.winningTeam = null;
+    this.state.isDisbanded = true;
+    this.state.hasRolledCard = false;
+
+    this.pauseKillCooldown();
+    this.pauseDiscussionTimer();
+    if (this.state.emergencyCooldownInterval) clearInterval(this.state.emergencyCooldownInterval);
+
+    this.broadcastStateUpdate();
+
+    document.getElementById('partyModal')?.classList.remove('active');
+    document.getElementById('joinPartyModal')?.classList.remove('active');
+
+    this.showStep('partyNameStep');
+    const preInput = document.getElementById('partyNameInputPre');
+    if (preInput) preInput.value = '';
+
+    alert('💥 Party has been disbanded!');
+  },
+
   bindEvents() {
     // Open Host Party Modal at Party Naming Pre-Screen
     const hostBtn = document.getElementById('hostPartyBtn');
@@ -2433,6 +2479,12 @@ const PartyManager = {
     document.getElementById('exitJoinPartyBtn')?.addEventListener('click', () => this.closeJoinParty());
     document.getElementById('exitJoinDashBtn')?.addEventListener('click', () => this.closeJoinParty());
     document.getElementById('exitWaitingBtn')?.addEventListener('click', () => this.closeJoinParty());
+
+    // Disband Party Buttons
+    document.getElementById('disbandHostPartyBtn')?.addEventListener('click', () => this.disbandParty());
+    document.getElementById('disbandHostDashBtn')?.addEventListener('click', () => this.disbandParty());
+    document.getElementById('disbandClientWaitingBtn')?.addEventListener('click', () => this.disbandParty());
+    document.getElementById('disbandClientDashBtn')?.addEventListener('click', () => this.disbandParty());
 
     // Submit Join Party Form
     const submitJoinBtn = document.getElementById('submitJoinPartyBtn');
