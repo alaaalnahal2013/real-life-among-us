@@ -736,6 +736,7 @@ const PartyManager = {
         maxPlayers: this.state.maxPlayers || 4,
         settings: this.state.settings,
         assignedGame: this.state.assignedGame,
+        revealIndex: this.state.revealIndex || 0,
         isEmergencyActive: !!this.state.isEmergencyActive,
         discussionSeconds: this.state.discussionSeconds || 90,
         killTimerSeconds: this.state.killTimerSeconds || 40,
@@ -860,6 +861,7 @@ const PartyManager = {
     }
 
     if (data.ejectionResult !== undefined) this.state.ejectionResult = data.ejectionResult;
+    if (data.revealIndex !== undefined) this.state.revealIndex = data.revealIndex;
     if (data.winningTeam !== undefined) this.state.winningTeam = data.winningTeam;
     if (data.gameEndReason !== undefined) this.state.gameEndReason = data.gameEndReason;
     if (data.emergencyCooldownSeconds !== undefined) {
@@ -918,17 +920,33 @@ const PartyManager = {
       }
     }
 
-    // If waiting in lobby step and game has started, automatically roll card and view player dashboard!
-    const waitingStep = document.getElementById('joinWaitingStep');
-    if (waitingStep && waitingStep.classList.contains('active') && this.state.assignedGame && this.state.joinedPlayer) {
-      const matched = this.state.assignedGame.players.find(p => p.name.toLowerCase() === this.state.joinedPlayer.name.toLowerCase());
-      if (matched && !this.state.hasRolledCard) {
-        this.state.hasRolledCard = true;
-        this.state.joinedPlayer = matched;
-        this.triggerSequentialCardRollingAnimation(matched, () => {
+    // Turn-Based Pass & Play Reveal Step Sync across all devices
+    if (this.state.assignedGame && this.state.assignedGame.players) {
+      const curIdx = this.state.revealIndex || 0;
+      const totalPlayers = this.state.assignedGame.players.length;
+
+      if (curIdx < totalPlayers) {
+        const joinModal = document.getElementById('joinPartyModal');
+        const partyModal = document.getElementById('partyModal');
+        if (joinModal && joinModal.classList.contains('active')) {
+          joinModal.classList.remove('active');
+          if (partyModal) partyModal.classList.add('active');
+        }
+        const setupStepHost = document.getElementById('partySetupStep');
+        const waitingStep = document.getElementById('joinWaitingStep');
+        if ((setupStepHost && setupStepHost.classList.contains('active')) || (waitingStep && waitingStep.classList.contains('active'))) {
+          if (partyModal) partyModal.classList.add('active');
+          this.showStep('partyRevealStep');
+        }
+        this.setupRevealStep();
+      } else if (curIdx >= totalPlayers && !this.state.winningTeam) {
+        if (this.state.joinedPlayer) {
           this.showStepInModal('joinPartyModal', 'joinDashboardStep');
           this.renderJoinedPlayerDashboard();
-        });
+        } else {
+          this.showStep('partyDashboardStep');
+          this.renderDashboardPlayers();
+        }
       }
     }
   },
@@ -1142,8 +1160,16 @@ const PartyManager = {
   },
 
   setupRevealStep() {
-    const curIdx = this.state.revealIndex;
+    if (!this.state.assignedGame || !this.state.assignedGame.players) return;
+
+    const curIdx = this.state.revealIndex || 0;
     const totalPlayers = this.state.assignedGame.players.length;
+
+    if (curIdx >= totalPlayers) {
+      this.startLiveDashboard();
+      return;
+    }
+
     const player = this.state.assignedGame.players[curIdx];
 
     document.getElementById('revealPlayerTitle').textContent = `Pass device to ${player.name} (${curIdx + 1}/${totalPlayers})`;
@@ -1162,6 +1188,33 @@ const PartyManager = {
         hostBtn.innerHTML = `👑 Host: Switch to ${nextPlayer.name} (${nextIdx + 1}/${totalPlayers}) ➔`;
       } else {
         hostBtn.innerHTML = `👑 Host: Launch Live Host Dashboard! 🚀`;
+      }
+    }
+
+    const isMyTurn = !this.state.joinedPlayer || 
+                     (this.state.joinedPlayer.name.toLowerCase() === player.name.toLowerCase());
+
+    const revealBtn = document.getElementById('revealCardBtn');
+    const waitingNotice = document.getElementById('curtainWaitingNotice');
+
+    if (isMyTurn) {
+      if (revealBtn) {
+        revealBtn.style.display = 'inline-block';
+        revealBtn.innerHTML = `🎲 Tap to Roll ${player.name}'s Secret Role & Tasks`;
+      }
+      if (waitingNotice) waitingNotice.style.display = 'none';
+    } else {
+      if (revealBtn) revealBtn.style.display = 'none';
+      if (waitingNotice) {
+        waitingNotice.style.display = 'block';
+        waitingNotice.innerHTML = `
+          <div style="background:rgba(241,196,15,0.15); border:1.5px solid rgba(241,196,15,0.4); border-radius:12px; padding:1.25rem; text-align:center; margin-top:1rem;">
+            <div style="font-size:2.5rem; margin-bottom:0.5rem;" class="auto-return-box">⌛</div>
+            <h3 style="color:#f1c40f; font-size:1.15rem; margin-bottom:0.4rem;">WAITING FOR YOUR TURN TO ROLL...</h3>
+            <p style="color:#ecf0f1; font-size:0.95rem;">Current Turn: <strong>👤 ${player.name}</strong> (${curIdx + 1}/${totalPlayers})</p>
+            <p style="color:#bdc3c7; font-size:0.85rem; margin-top:0.5rem; font-style:italic;">Please wait until ${player.name} finishes rolling their secret role & tasks!</p>
+          </div>
+        `;
       }
     }
 
@@ -1383,7 +1436,9 @@ const PartyManager = {
       this.setupRevealStep();
       const modalContent = document.querySelector('.party-modal-content');
       if (modalContent) modalContent.scrollTop = 0;
+      this.broadcastStateUpdate();
     } else {
+      this.broadcastStateUpdate();
       this.startLiveDashboard();
     }
   },
