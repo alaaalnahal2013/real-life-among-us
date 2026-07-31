@@ -1202,8 +1202,9 @@ const PartyManager = {
       }
     }
 
-    const isMyTurn = !this.state.joinedPlayer || 
-                     (this.state.joinedPlayer.name.toLowerCase() === player.name.toLowerCase());
+    const myPlayerName = (this.state.joinedPlayer ? this.state.joinedPlayer.name : this.state.hostName) || '';
+    const isMyTurn = (!myPlayerName && !this.state.joinedPlayer && !this.state.hostName) || 
+                     (myPlayerName && myPlayerName.trim().toLowerCase() === player.name.trim().toLowerCase());
 
     const revealBtn = document.getElementById('revealCardBtn');
     const waitingNotice = document.getElementById('curtainWaitingNotice');
