@@ -1164,6 +1164,8 @@ const PartyManager = {
     this.broadcastStateUpdate();
 
     this.state.revealIndex = 0;
+    this._lastSetupRevealIndex = null;
+    this._isRollingCard = false;
     this.showStep('partyRevealStep');
     this.setupRevealStep();
   },
@@ -1227,14 +1229,25 @@ const PartyManager = {
       }
     }
 
-    document.getElementById('curtainFrontView').style.display = 'block';
-    document.getElementById('curtainRevealedContent').style.display = 'none';
+    const frontView = document.getElementById('curtainFrontView');
+    const revealedView = document.getElementById('curtainRevealedContent');
+    const isSamePlayerIndex = (this._lastSetupRevealIndex === curIdx);
+    const isRevealedOrRolling = this._isRollingCard || (revealedView && revealedView.style.display === 'block');
+
+    if (!isSamePlayerIndex || !isRevealedOrRolling) {
+      if (frontView) frontView.style.display = 'block';
+      if (revealedView) revealedView.style.display = 'none';
+    }
+
+    this._lastSetupRevealIndex = curIdx;
   },
 
   // Interactive Luck-Based Sequential Card Rolling Reel Engine
   triggerSequentialCardRollingAnimation(player, onComplete) {
+    this._isRollingCard = true;
     const rollingStage = document.getElementById('cardRollingStage');
     if (!rollingStage) {
+      this._isRollingCard = false;
       onComplete();
       return;
     }
@@ -1287,6 +1300,7 @@ const PartyManager = {
       if (currentRollIdx >= totalRolls) {
         setTimeout(() => {
           rollingStage.style.display = 'none';
+          this._isRollingCard = false;
           onComplete();
         }, 500);
         return;
