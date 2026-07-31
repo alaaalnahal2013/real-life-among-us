@@ -48,6 +48,14 @@
         <span>🎮 Join a Party</span>
       </button>
 
+      <!-- Account / Profile Button -->
+      <button class="btn-account-toggle" id="accountToggleBtn" title="Account / Profile" aria-label="Account">
+        <div class="account-avatar-mini" id="accountAvatarMini">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </div>
+        <span class="account-label-mini" id="accountLabelMini">Account</span>
+      </button>
+
       <!-- Hamburger for secondary controls (view modes, download, print) -->
       <button class="hamburger-btn" id="mobileMenuToggleBtn" title="More options" aria-label="Open menu">
         <span class="ham-bar"></span>
@@ -461,6 +469,179 @@
     <div class="modal-content">
       <button class="modal-close" id="modalCloseBtn">&times;</button>
       <div id="modalCardTarget"></div>
+    </div>
+  </div>
+
+  <!-- ===== AUTH / ACCOUNT MODAL ===== -->
+  <div class="modal-overlay auth-modal-overlay" id="authModal">
+    <div class="auth-modal-card">
+      <button class="modal-close auth-modal-close" id="authModalCloseBtn">&times;</button>
+
+      <!-- VIEW: CHOICE (Login / Sign Up / Guest) -->
+      <div class="auth-view" id="authChoiceView">
+        <div class="auth-logo-wrap">
+          <div class="auth-helmet-icon">
+            <svg viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="3">
+              <path d="M18 50 V 22 C 18 12, 42 12, 42 22 V 50 Z"/>
+              <ellipse cx="30" cy="24" rx="9" ry="6" stroke-width="3" fill="#7ca89d"/>
+              <path d="M14 30 V 46 C 14 48, 18 48, 18 46 V 30 Z"/>
+            </svg>
+          </div>
+          <h2 class="auth-title">AMONG US ACCOUNT</h2>
+          <p class="auth-sub">Sign in to save your profile and auto-fill your name in party lobbies!</p>
+        </div>
+        <div class="auth-choice-btns">
+          <button class="auth-choice-btn auth-choice-login" id="goToLoginBtn">
+            <span class="auth-choice-icon">🔑</span>
+            <div>
+              <div class="auth-choice-label">Log In</div>
+              <div class="auth-choice-hint">Already have an account</div>
+            </div>
+          </button>
+          <button class="auth-choice-btn auth-choice-signup" id="goToSignupBtn">
+            <span class="auth-choice-icon">✨</span>
+            <div>
+              <div class="auth-choice-label">Sign Up</div>
+              <div class="auth-choice-hint">Create a free account</div>
+            </div>
+          </button>
+          <button class="auth-choice-btn auth-choice-guest" id="goToGuestBtn">
+            <span class="auth-choice-icon">👤</span>
+            <div>
+              <div class="auth-choice-label">Play as Guest</div>
+              <div class="auth-choice-hint">No account needed</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- VIEW: LOGIN -->
+      <div class="auth-view" id="authLoginView" style="display:none;">
+        <button class="auth-back-btn" id="loginBackBtn">← Back</button>
+        <h2 class="auth-title">🔑 LOG IN</h2>
+        <p class="auth-sub">Welcome back, crewmate!</p>
+        <div class="auth-form">
+          <div class="auth-field">
+            <label>Email Address</label>
+            <input type="email" id="loginEmailInput" placeholder="your@email.com" class="auth-input">
+          </div>
+          <div class="auth-field">
+            <label>Password</label>
+            <input type="password" id="loginPasswordInput" placeholder="Your password..." class="auth-input">
+          </div>
+          <div class="auth-error" id="loginError" style="display:none;"></div>
+          <button class="auth-submit-btn" id="loginSubmitBtn">🔑 Log In</button>
+        </div>
+        <p class="auth-switch-text">Don't have an account? <button class="auth-link" id="loginToSignupBtn">Sign Up</button></p>
+      </div>
+
+      <!-- VIEW: SIGN UP -->
+      <div class="auth-view" id="authSignupView" style="display:none;">
+        <button class="auth-back-btn" id="signupBackBtn">← Back</button>
+        <h2 class="auth-title">✨ CREATE ACCOUNT</h2>
+        <p class="auth-sub">Join the crew, crewmate!</p>
+        <div class="auth-form">
+          <div class="auth-field">
+            <label>Username (shown in parties)</label>
+            <input type="text" id="signupUsernameInput" placeholder="YourGameName" maxlength="15" class="auth-input">
+          </div>
+          <div class="auth-field">
+            <label>Email Address</label>
+            <input type="email" id="signupEmailInput" placeholder="your@email.com" class="auth-input">
+          </div>
+          <div class="auth-field">
+            <label>Password (min 6 characters)</label>
+            <input type="password" id="signupPasswordInput" placeholder="Choose a strong password..." class="auth-input">
+          </div>
+          <div class="auth-error" id="signupError" style="display:none;"></div>
+          <button class="auth-submit-btn" id="signupSubmitBtn">✨ Create Account</button>
+        </div>
+        <p class="auth-switch-text">Already have an account? <button class="auth-link" id="signupToLoginBtn">Log In</button></p>
+      </div>
+
+      <!-- VIEW: GUEST -->
+      <div class="auth-view" id="authGuestView" style="display:none;">
+        <button class="auth-back-btn" id="guestBackBtn">← Back</button>
+        <h2 class="auth-title">👤 PLAY AS GUEST</h2>
+        <p class="auth-sub">Enter a name to use in party lobbies. Your progress won't be saved.</p>
+        <div class="auth-form">
+          <div class="auth-field">
+            <label>Your Display Name</label>
+            <input type="text" id="guestNameInput" placeholder="Enter your name..." maxlength="15" class="auth-input">
+          </div>
+          <div class="auth-error" id="guestError" style="display:none;"></div>
+          <button class="auth-submit-btn auth-guest-btn" id="guestSubmitBtn">👤 Continue as Guest</button>
+        </div>
+      </div>
+
+      <!-- VIEW: PROFILE (logged in) -->
+      <div class="auth-view" id="authProfileView" style="display:none;">
+        <h2 class="auth-title">👑 YOUR PROFILE</h2>
+        <div class="profile-avatar-wrap">
+          <div class="profile-avatar-circle" id="profileAvatarCircle" title="Click to change photo">
+            <img id="profileAvatarImg" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%;">
+            <div class="profile-avatar-placeholder" id="profileAvatarPlaceholder">
+              <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            </div>
+            <div class="profile-avatar-overlay">📷 Change</div>
+          </div>
+          <input type="file" id="avatarFileInput" accept="image/*" style="display:none;">
+          <p class="profile-avatar-hint">Click photo to change</p>
+        </div>
+        <div class="profile-info-wrap">
+          <div class="profile-info-row">
+            <span class="profile-info-label">👤 Username</span>
+            <span class="profile-info-val" id="profileUsernameDisplay">—</span>
+          </div>
+          <div class="profile-info-row">
+            <span class="profile-info-label">📧 Email</span>
+            <span class="profile-info-val" id="profileEmailDisplay">—</span>
+          </div>
+        </div>
+        <div class="profile-edit-wrap" id="profileEditWrap" style="display:none;">
+          <div class="auth-field">
+            <label>New Username</label>
+            <input type="text" id="profileEditUsername" maxlength="15" class="auth-input" placeholder="New username...">
+          </div>
+          <div class="auth-error" id="profileEditError" style="display:none;"></div>
+          <div style="display:flex;gap:0.75rem;">
+            <button class="auth-submit-btn" id="profileSaveBtn" style="flex:1;">💾 Save</button>
+            <button class="btn btn-secondary" id="profileCancelEditBtn" style="flex:1;">Cancel</button>
+          </div>
+        </div>
+        <div class="profile-actions">
+          <button class="btn btn-secondary" id="editProfileBtn">✏️ Edit Username</button>
+          <button class="auth-submit-btn auth-logout-btn" id="logoutBtn">🚪 Log Out</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== GAME RULES OVERLAY (20-second countdown before game starts) ===== -->
+  <div class="game-rules-overlay" id="gameRulesOverlay" style="display:none;">
+    <div class="game-rules-box">
+      <div class="rules-overlay-badge">📋 GAME RULES</div>
+      <h2 class="rules-overlay-title">READ THE RULES CAREFULLY!</h2>
+
+      <div class="rules-overlay-card">
+        <div class="rules-overlay-item">🤫 <strong>THE IMPOSTER kills crewmates by briefly touching their shoulder.</strong> 40 seconds between each kill.</div>
+        <div class="rules-overlay-item">🤐 <strong>If you are killed — sit down, stay silent.</strong> No screaming or talking.</div>
+        <div class="rules-overlay-item">🚫 <strong>No talking during rounds.</strong> Only speak during Emergency Meetings.</div>
+        <div class="rules-overlay-item">🕵️ <strong>Crewmates:</strong> Complete your tasks and identify the Imposter!</div>
+        <div class="rules-overlay-item">🔪 <strong>Imposter:</strong> Blend in and eliminate Crewmates before they finish tasks!</div>
+        <div class="rules-overlay-footer">GOOD LUCK. MAY THE BEST CREW WIN. 🚀</div>
+      </div>
+
+      <div class="rules-countdown-wrap">
+        <div class="rules-countdown-label">Game begins in</div>
+        <div class="rules-countdown-number" id="rulesCountdownNumber">20</div>
+        <div class="rules-countdown-bar-track">
+          <div class="rules-countdown-bar-fill" id="rulesCountdownBar" style="width:100%;"></div>
+        </div>
+      </div>
+
+      <button class="rules-ready-btn" id="rulesReadyBtn">✅ I'm Ready — Start Game Now!</button>
     </div>
   </div>
 

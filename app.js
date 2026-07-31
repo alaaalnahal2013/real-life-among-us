@@ -656,6 +656,422 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ==========================================================================
+   AUTH MANAGER — Sign Up / Log In / Guest / Profile
+   ========================================================================== */
+
+const AuthManager = {
+  currentUser: null,      // Supabase auth user object
+  currentProfile: null,   // { username, avatar_url }
+  guestName: null,        // Filled when user chooses "Play as Guest"
+
+  /* ── Initialise on page load ───────────────────────────────────────────── */
+  async init() {
+    // Restore guest from sessionStorage
+    this.guestName = sessionStorage.getItem('guestName') || null;
+
+    if (!window._supabase) {
+      this.renderHeaderButton();
+      this.bindAuthEvents();
+      return;
+    }
+
+    // Listen for auth state changes (login / logout)
+    window._supabase.auth.onAuthStateChange(async (event, session) => {
+      this.currentUser = session?.user || null;
+      if (this.currentUser) {
+        await this.loadProfile();
+        this.guestName = null;
+        sessionStorage.removeItem('guestName');
+      } else {
+        this.currentProfile = null;
+      }
+      this.renderHeaderButton();
+    });
+
+    // Check existing session
+    const { data: { session } } = await window._supabase.auth.getSession();
+    this.currentUser = session?.user || null;
+    if (this.currentUser) {
+      await this.loadProfile();
+    }
+
+    this.renderHeaderButton();
+    this.bindAuthEvents();
+  },
+
+  /* ── Get active display name (for auto-fill) ───────────────────────────── */
+  getDisplayName() {
+    if (this.currentProfile?.username) return this.currentProfile.username;
+    if (this.guestName) return this.guestName;
+    return '';
+  },
+
+  /* ── Load profile from Supabase ─────────────────────────────────────────── */
+  async loadProfile() {
+    if (!this.currentUser || !window._supabase) return;
+    try {
+      const { data, error } = await window._supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', this.currentUser.id)
+        .maybeSingle();
+      if (!error && data) this.currentProfile = data;
+    } catch(e) {
+      console.warn('[Auth] loadProfile error:', e);
+    }
+  },
+
+  /* ── Sign Up ─────────────────────────────────────────────────────────────── */
+  async signUp(email, password, username) {
+    if (!window._supabase) throw new Error('Auth unavailable');
+    const trimmedUsername = username.trim();
+    if (!trimmedUsername) throw new Error('Username is required');
+
+    const { data, error } = await window._supabase.auth.signUp({ email, password });
+    if (error) throw new Error(error.message);
+
+    if (data.user) {
+      // Insert profile record
+      const { error: profileErr } = await window._supabase.from('profiles').upsert({
+        id: data.user.id,
+        username: trimmedUsername,
+        updated_at: new Date().toISOString()
+      });
+      if (profileErr) console.warn('[Auth] profile upsert error:', profileErr);
+      this.currentProfile = { username: trimmedUsername, avatar_url: null };
+    }
+    return data;
+  },
+
+  /* ── Log In ──────────────────────────────────────────────────────────────── */
+  async logIn(email, password) {
+    if (!window._supabase) throw new Error('Auth unavailable');
+    const { data, error } = await window._supabase.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(error.message);
+    return data;
+  },
+
+  /* ── Log Out ─────────────────────────────────────────────────────────────── */
+  async logOut() {
+    if (!window._supabase) return;
+    await window._supabase.auth.signOut();
+    this.currentUser = null;
+    this.currentProfile = null;
+    this.guestName = null;
+    sessionStorage.removeItem('guestName');
+    this.renderHeaderButton();
+    this.showAuthView('authChoiceView');
+  },
+
+  /* ── Continue as Guest ───────────────────────────────────────────────────── */
+  setGuest(name) {
+    const trimmed = name.trim();
+    if (!trimmed) throw new Error('Please enter a name');
+    this.guestName = trimmed;
+    sessionStorage.setItem('guestName', trimmed);
+    this.renderHeaderButton();
+  },
+
+  /* ── Upload avatar photo ─────────────────────────────────────────────────── */
+  async uploadAvatar(file) {
+    if (!window._supabase || !this.currentUser) return null;
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `avatars/${this.currentUser.id}.${ext}`;
+      const { error: upErr } = await window._supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true });
+      if (upErr) {
+        console.warn('[Auth] avatar upload error:', upErr);
+        // Fallback: use a local object URL displayed client-side only
+        return URL.createObjectURL(file);
+      }
+      const { data: urlData } = window._supabase.storage.from('avatars').getPublicUrl(path);
+      const avatarUrl = urlData?.publicUrl || URL.createObjectURL(file);
+
+      // Save URL to profile
+      await window._supabase.from('profiles').update({
+        avatar_url: avatarUrl,
+        updated_at: new Date().toISOString()
+      }).eq('id', this.currentUser.id);
+
+      if (this.currentProfile) this.currentProfile.avatar_url = avatarUrl;
+      return avatarUrl;
+    } catch(e) {
+      console.warn('[Auth] uploadAvatar exception:', e);
+      return URL.createObjectURL(file);
+    }
+  },
+
+  /* ── Update username ─────────────────────────────────────────────────────── */
+  async updateUsername(newUsername) {
+    if (!window._supabase || !this.currentUser) throw new Error('Not logged in');
+    const trimmed = newUsername.trim();
+    if (!trimmed) throw new Error('Username cannot be empty');
+    const { error } = await window._supabase.from('profiles').update({
+      username: trimmed,
+      updated_at: new Date().toISOString()
+    }).eq('id', this.currentUser.id);
+    if (error) throw new Error(error.message);
+    if (this.currentProfile) this.currentProfile.username = trimmed;
+  },
+
+  /* ── Render header account button ───────────────────────────────────────── */
+  renderHeaderButton() {
+    const miniEl = document.getElementById('accountAvatarMini');
+    const labelEl = document.getElementById('accountLabelMini');
+    if (!miniEl) return;
+
+    if (this.currentUser && this.currentProfile) {
+      const avatarUrl = this.currentProfile.avatar_url;
+      if (avatarUrl) {
+        miniEl.innerHTML = `<img src="${avatarUrl}" alt="avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+      } else {
+        miniEl.innerHTML = `<span style="font-size:1.1rem;font-weight:800;color:#f1c40f;">${(this.currentProfile.username || '?')[0].toUpperCase()}</span>`;
+      }
+      if (labelEl) labelEl.textContent = this.currentProfile.username || 'Profile';
+    } else if (this.guestName) {
+      miniEl.innerHTML = `<span style="font-size:0.75rem;font-weight:800;color:#bdc3c7;">G</span>`;
+      if (labelEl) labelEl.textContent = this.guestName;
+    } else {
+      miniEl.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>`;
+      if (labelEl) labelEl.textContent = 'Account';
+    }
+  },
+
+  /* ── Show a specific auth view ───────────────────────────────────────────── */
+  showAuthView(viewId) {
+    const views = ['authChoiceView','authLoginView','authSignupView','authGuestView','authProfileView'];
+    views.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = (id === viewId) ? '' : 'none';
+    });
+  },
+
+  /* ── Open modal, choosing correct view ──────────────────────────────────── */
+  openModal() {
+    const modal = document.getElementById('authModal');
+    if (!modal) return;
+    modal.classList.add('active');
+
+    if (this.currentUser && this.currentProfile) {
+      this.showAuthView('authProfileView');
+      this.renderProfileView();
+    } else {
+      this.showAuthView('authChoiceView');
+    }
+  },
+
+  /* ── Populate profile view ───────────────────────────────────────────────── */
+  renderProfileView() {
+    const usernameEl = document.getElementById('profileUsernameDisplay');
+    const emailEl = document.getElementById('profileEmailDisplay');
+    const imgEl = document.getElementById('profileAvatarImg');
+    const placeholderEl = document.getElementById('profileAvatarPlaceholder');
+
+    if (usernameEl) usernameEl.textContent = this.currentProfile?.username || '—';
+    if (emailEl) emailEl.textContent = this.currentUser?.email || '—';
+
+    const avatarUrl = this.currentProfile?.avatar_url;
+    if (imgEl && placeholderEl) {
+      if (avatarUrl) {
+        imgEl.src = avatarUrl;
+        imgEl.style.display = '';
+        placeholderEl.style.display = 'none';
+      } else {
+        imgEl.style.display = 'none';
+        placeholderEl.style.display = '';
+      }
+    }
+  },
+
+  /* ── Bind all auth UI events ─────────────────────────────────────────────── */
+  bindAuthEvents() {
+    // Open modal via header button
+    const accountBtn = document.getElementById('accountToggleBtn');
+    if (accountBtn) accountBtn.addEventListener('click', () => this.openModal());
+
+    // Close modal
+    const closeBtn = document.getElementById('authModalCloseBtn');
+    if (closeBtn) closeBtn.addEventListener('click', () => {
+      document.getElementById('authModal')?.classList.remove('active');
+    });
+
+    // Click outside modal card to close
+    const modal = document.getElementById('authModal');
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.classList.remove('active');
+      });
+    }
+
+    // Navigation: choice → views
+    document.getElementById('goToLoginBtn')?.addEventListener('click', () => this.showAuthView('authLoginView'));
+    document.getElementById('goToSignupBtn')?.addEventListener('click', () => this.showAuthView('authSignupView'));
+    document.getElementById('goToGuestBtn')?.addEventListener('click', () => this.showAuthView('authGuestView'));
+
+    // Back buttons
+    document.getElementById('loginBackBtn')?.addEventListener('click', () => this.showAuthView('authChoiceView'));
+    document.getElementById('signupBackBtn')?.addEventListener('click', () => this.showAuthView('authChoiceView'));
+    document.getElementById('guestBackBtn')?.addEventListener('click', () => this.showAuthView('authChoiceView'));
+
+    // Cross-links
+    document.getElementById('loginToSignupBtn')?.addEventListener('click', () => this.showAuthView('authSignupView'));
+    document.getElementById('signupToLoginBtn')?.addEventListener('click', () => this.showAuthView('authLoginView'));
+
+    // ── Login submit ──
+    document.getElementById('loginSubmitBtn')?.addEventListener('click', async () => {
+      const email = document.getElementById('loginEmailInput')?.value.trim();
+      const password = document.getElementById('loginPasswordInput')?.value;
+      const errorEl = document.getElementById('loginError');
+      const btn = document.getElementById('loginSubmitBtn');
+      if (!email || !password) {
+        if (errorEl) { errorEl.textContent = 'Please fill in all fields.'; errorEl.style.display = ''; }
+        return;
+      }
+      if (btn) { btn.textContent = '🔄 Logging in...'; btn.disabled = true; }
+      try {
+        await this.logIn(email, password);
+        if (errorEl) errorEl.style.display = 'none';
+        this.showAuthView('authProfileView');
+        this.renderProfileView();
+        // Auto-fill party name fields
+        this._autoFillPartyFields();
+      } catch(e) {
+        if (errorEl) { errorEl.textContent = e.message; errorEl.style.display = ''; }
+      } finally {
+        if (btn) { btn.textContent = '🔑 Log In'; btn.disabled = false; }
+      }
+    });
+
+    // ── Sign up submit ──
+    document.getElementById('signupSubmitBtn')?.addEventListener('click', async () => {
+      const username = document.getElementById('signupUsernameInput')?.value.trim();
+      const email = document.getElementById('signupEmailInput')?.value.trim();
+      const password = document.getElementById('signupPasswordInput')?.value;
+      const errorEl = document.getElementById('signupError');
+      const btn = document.getElementById('signupSubmitBtn');
+      if (!username || !email || !password) {
+        if (errorEl) { errorEl.textContent = 'Please fill in all fields.'; errorEl.style.display = ''; }
+        return;
+      }
+      if (password.length < 6) {
+        if (errorEl) { errorEl.textContent = 'Password must be at least 6 characters.'; errorEl.style.display = ''; }
+        return;
+      }
+      if (btn) { btn.textContent = '🔄 Creating account...'; btn.disabled = true; }
+      try {
+        await this.signUp(email, password, username);
+        if (errorEl) errorEl.style.display = 'none';
+        this.showAuthView('authProfileView');
+        this.renderProfileView();
+        this._autoFillPartyFields();
+      } catch(e) {
+        if (errorEl) { errorEl.textContent = e.message; errorEl.style.display = ''; }
+      } finally {
+        if (btn) { btn.textContent = '✨ Create Account'; btn.disabled = false; }
+      }
+    });
+
+    // ── Guest submit ──
+    document.getElementById('guestSubmitBtn')?.addEventListener('click', () => {
+      const name = document.getElementById('guestNameInput')?.value;
+      const errorEl = document.getElementById('guestError');
+      try {
+        this.setGuest(name);
+        if (errorEl) errorEl.style.display = 'none';
+        document.getElementById('authModal')?.classList.remove('active');
+        this._autoFillPartyFields();
+      } catch(e) {
+        if (errorEl) { errorEl.textContent = e.message; errorEl.style.display = ''; }
+      }
+    });
+    // Allow Enter in guest input
+    document.getElementById('guestNameInput')?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') document.getElementById('guestSubmitBtn')?.click();
+    });
+
+    // ── Log out ──
+    document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+      await this.logOut();
+    });
+
+    // ── Edit username ──
+    document.getElementById('editProfileBtn')?.addEventListener('click', () => {
+      const wrap = document.getElementById('profileEditWrap');
+      if (wrap) {
+        wrap.style.display = '';
+        const input = document.getElementById('profileEditUsername');
+        if (input) input.value = this.currentProfile?.username || '';
+      }
+    });
+
+    document.getElementById('profileCancelEditBtn')?.addEventListener('click', () => {
+      const wrap = document.getElementById('profileEditWrap');
+      if (wrap) wrap.style.display = 'none';
+    });
+
+    document.getElementById('profileSaveBtn')?.addEventListener('click', async () => {
+      const newName = document.getElementById('profileEditUsername')?.value;
+      const errorEl = document.getElementById('profileEditError');
+      const btn = document.getElementById('profileSaveBtn');
+      if (btn) { btn.textContent = '🔄 Saving...'; btn.disabled = true; }
+      try {
+        await this.updateUsername(newName);
+        if (errorEl) errorEl.style.display = 'none';
+        this.renderProfileView();
+        this.renderHeaderButton();
+        document.getElementById('profileEditWrap').style.display = 'none';
+        this._autoFillPartyFields();
+      } catch(e) {
+        if (errorEl) { errorEl.textContent = e.message; errorEl.style.display = ''; }
+      } finally {
+        if (btn) { btn.textContent = '💾 Save'; btn.disabled = false; }
+      }
+    });
+
+    // ── Avatar photo upload ──
+    const avatarCircle = document.getElementById('profileAvatarCircle');
+    const fileInput = document.getElementById('avatarFileInput');
+    if (avatarCircle && fileInput) {
+      avatarCircle.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const imgEl = document.getElementById('profileAvatarImg');
+        const placeholderEl = document.getElementById('profileAvatarPlaceholder');
+        // Show local preview immediately
+        const localUrl = URL.createObjectURL(file);
+        if (imgEl) { imgEl.src = localUrl; imgEl.style.display = ''; }
+        if (placeholderEl) placeholderEl.style.display = 'none';
+        // Upload to Supabase (or just use local URL)
+        const finalUrl = await this.uploadAvatar(file);
+        if (finalUrl && imgEl) imgEl.src = finalUrl;
+        this.renderHeaderButton();
+        fileInput.value = '';
+      });
+    }
+  },
+
+  /* ── Auto-fill party name/player name fields ─────────────────────────────── */
+  _autoFillPartyFields() {
+    const displayName = this.getDisplayName();
+    if (!displayName) return;
+    // Host name input
+    const hostNameInput = document.getElementById('hostNameInput');
+    if (hostNameInput && !hostNameInput.value) {
+      hostNameInput.value = displayName;
+      hostNameInput.dispatchEvent(new Event('input'));
+    }
+    // Join player name input
+    const joinPlayerNameInput = document.getElementById('joinPlayerNameInput');
+    if (joinPlayerNameInput && !joinPlayerNameInput.value) {
+      joinPlayerNameInput.value = displayName;
+    }
+  }
+};
+
+/* ==========================================================================
    HOST & JOIN A PARTY (PLAY WITH FRIENDS) MODULE
    ========================================================================== */
 
@@ -700,6 +1116,10 @@ const PartyManager = {
     this.bindEvents();
     this.renderPlayerChips();
     this.listenStateSync();
+
+    // Initialise Auth (sign up / log in / guest)
+    AuthManager.init();
+
 
     // Check for public URL direct room join hash (e.g. #room=AMONG-8294)
     if (window.location.hash && window.location.hash.includes('room=')) {
@@ -1178,9 +1598,64 @@ const PartyManager = {
     this.state.revealIndex = 0;
     this._lastSetupRevealIndex = null;
     this._isRollingCard = false;
-    this.showStep('partyRevealStep');
-    this.setupRevealStep();
+
+    // Show 20-second Game Rules overlay before starting pass-and-play
+    this.showGameRulesOverlay();
   },
+
+  /* ── 20-Second Game Rules Overlay before pass-and-play begins ─────────── */
+  showGameRulesOverlay() {
+    const overlay = document.getElementById('gameRulesOverlay');
+    if (!overlay) {
+      // Fallback: go directly to reveal step
+      this.showStep('partyRevealStep');
+      this.setupRevealStep();
+      return;
+    }
+
+    overlay.style.display = '';
+    // Scroll modal to top
+    const modalContent = document.querySelector('.party-modal-content');
+    if (modalContent) modalContent.scrollTop = 0;
+
+    let secondsLeft = 20;
+    const numEl = document.getElementById('rulesCountdownNumber');
+    const barEl = document.getElementById('rulesCountdownBar');
+    if (numEl) numEl.textContent = secondsLeft;
+    if (barEl) barEl.style.width = '100%';
+
+    const finish = () => {
+      clearInterval(this._rulesTimer);
+      overlay.style.display = 'none';
+      this.showStep('partyRevealStep');
+      this.setupRevealStep();
+    };
+
+    // "I'm Ready" skip button
+    const readyBtn = document.getElementById('rulesReadyBtn');
+    const skipHandler = () => {
+      readyBtn?.removeEventListener('click', skipHandler);
+      finish();
+    };
+    if (readyBtn) {
+      readyBtn.removeEventListener('click', skipHandler); // clear any old
+      readyBtn.addEventListener('click', skipHandler);
+    }
+
+    if (this._rulesTimer) clearInterval(this._rulesTimer);
+
+    this._rulesTimer = setInterval(() => {
+      secondsLeft--;
+      if (numEl) numEl.textContent = Math.max(0, secondsLeft);
+      if (barEl) barEl.style.width = `${Math.max(0, (secondsLeft / 20) * 100)}%`;
+      if (secondsLeft <= 0) {
+        readyBtn?.removeEventListener('click', skipHandler);
+        finish();
+      }
+    }, 1000);
+  },
+
+
 
   setupRevealStep() {
     if (!this.state.assignedGame || !this.state.assignedGame.players) return;
@@ -2481,6 +2956,16 @@ const PartyManager = {
           // Clear the pre-screen input so user types their own name
           const preInput = document.getElementById('partyNameInputPre');
           if (preInput) preInput.value = '';
+
+          // Auto-fill host name from logged-in user / guest
+          const displayName = (typeof AuthManager !== 'undefined') ? AuthManager.getDisplayName() : '';
+          if (displayName) {
+            const hostNameInput = document.getElementById('hostNameInput');
+            if (hostNameInput && !hostNameInput.value) {
+              hostNameInput.value = displayName;
+              hostNameInput.dispatchEvent(new Event('input'));
+            }
+          }
         }
       });
     }
@@ -2570,7 +3055,11 @@ const PartyManager = {
           const codeInput = document.getElementById('joinRoomCodeInput');
           if (codeInput) codeInput.value = '';
           const nameInput = document.getElementById('joinPlayerNameInput');
-          if (nameInput) nameInput.value = '';
+          if (nameInput) {
+            // Auto-fill from logged-in user or guest
+            const displayName = (typeof AuthManager !== 'undefined') ? AuthManager.getDisplayName() : '';
+            nameInput.value = displayName || '';
+          }
         }
       });
     }
