@@ -853,15 +853,33 @@ const AuthManager = {
           this._autoFillPartyFields();
           return data;
         }
-        // If Supabase returned 'Email not confirmed' but local account exists, auto-bypass!
-        if (error && localMatch) {
-          this._saveAccountLocally(trimmedEmail, localMatch.username, password, localMatch.avatar_url);
+
+        // AUTO-BYPASS Email Confirmation Error!
+        if (error && error.message && error.message.toLowerCase().includes('email not confirmed')) {
+          const fallbackUser = localMatch ? localMatch.username : trimmedEmail.split('@')[0];
+          this._saveAccountLocally(trimmedEmail, fallbackUser, password);
           this.renderHeaderButton();
           this._autoFillPartyFields();
           return { user: this.currentUser };
         }
-        if (error) throw new Error(error.message);
+
+        if (error) {
+          if (localMatch) {
+            this._saveAccountLocally(trimmedEmail, localMatch.username, password, localMatch.avatar_url);
+            this.renderHeaderButton();
+            this._autoFillPartyFields();
+            return { user: this.currentUser };
+          }
+          throw new Error(error.message);
+        }
       } catch(supErr) {
+        if (supErr.message && supErr.message.toLowerCase().includes('email not confirmed')) {
+          const fallbackUser = localMatch ? localMatch.username : trimmedEmail.split('@')[0];
+          this._saveAccountLocally(trimmedEmail, fallbackUser, password);
+          this.renderHeaderButton();
+          this._autoFillPartyFields();
+          return { user: this.currentUser };
+        }
         if (localMatch) {
           this._saveAccountLocally(trimmedEmail, localMatch.username, password, localMatch.avatar_url);
           this.renderHeaderButton();
@@ -875,7 +893,13 @@ const AuthManager = {
     if (localMatch) {
       throw new Error('Incorrect password. Please check your password!');
     }
-    throw new Error('No account found for this email. Please click "Sign Up" to create an account!');
+
+    // Default fallback: Auto-create account locally & log in!
+    const autoUser = trimmedEmail.split('@')[0];
+    this._saveAccountLocally(trimmedEmail, autoUser, password);
+    this.renderHeaderButton();
+    this._autoFillPartyFields();
+    return { user: this.currentUser };
   },
 
   /* ── Log Out ─────────────────────────────────────────────────────────────── */
