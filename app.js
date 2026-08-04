@@ -1780,16 +1780,14 @@ const PartyManager = {
     const assignedPlayers = this.state.players.map((name, i) => {
       const isImposter = imposterIndices.has(i);
       
-      let assignedTasks = [];
-      if (!isImposter) {
-        const taskShuffled = this.fisherYatesShuffle(availableTasks);
-        assignedTasks = taskShuffled.slice(0, tasksPerPlayer).map(t => ({
-          id: t.id,
-          title: t.title,
-          desc: t.desc || (t.content ? t.content.desc : ''),
-          completed: false
-        }));
-      }
+      const taskShuffled = this.fisherYatesShuffle(availableTasks);
+      const assignedTasks = taskShuffled.slice(0, tasksPerPlayer).map(t => ({
+        id: t.id,
+        title: t.title,
+        desc: t.desc || (t.content ? t.content.desc : ''),
+        completed: false,
+        isFake: isImposter
+      }));
 
       return {
         id: `p_${i + 1}_${name.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
@@ -2151,12 +2149,14 @@ const PartyManager = {
       const tasksList = document.getElementById('secretTasksList');
 
       if (isImposter) {
-        tasksBox.querySelector('h4').textContent = '🔪 IMPOSTER OBJECTIVE & RULES:';
+        tasksBox.querySelector('h4').textContent = '🔪 IMPOSTER OBJECTIVES & FAKE TASKS:';
+        const fakeTasksHtml = (player.tasks && player.tasks.length > 0)
+          ? player.tasks.map(t => `<li style="color:#f39c12; margin-top:0.3rem;">• <strong>🎭 FAKE TASK: ${t.title}</strong>: ${t.desc}</li>`).join('')
+          : '';
         tasksList.innerHTML = `
-          <li>• Touch crewmates on the shoulder to eliminate them secretly.</li>
-          <li>• Wait <strong>${this.state.settings.killCooldown} seconds</strong> cooldown between each kill.</li>
-          <li>• Pretend to perform tasks to blend in!</li>
-          <li>• Remain completely quiet once eliminated or during rounds.</li>
+          <li>• <strong>🔪 ELIMINATE CREWMATES:</strong> Touch shoulder secretly when alone (${this.state.settings ? this.state.settings.killCooldown : 40}s cooldown).</li>
+          <li style="margin-top:0.6rem; font-weight:bold; color:#f39c12;">• 🎭 YOUR FAKE TASKS TO BLEND IN:</li>
+          ${fakeTasksHtml}
         `;
       } else {
         tasksBox.querySelector('h4').textContent = `📋 YOUR ASSIGNED REAL-LIFE TASKS (${player.tasks.length}):`;
@@ -2437,21 +2437,43 @@ const PartyManager = {
     const taskTag = document.getElementById('joinTaskCountTag');
 
     if (isImposter) {
-      taskTag.textContent = 'Imposter Objectives';
+      const completedCount = player.tasks ? player.tasks.filter(t => t.completed).length : 0;
+      const totalCount = player.tasks ? player.tasks.length : 0;
+      taskTag.textContent = `${completedCount} / ${totalCount} Fake Tasks`;
+
+      const fakeTasksListHtml = (player.tasks && player.tasks.length > 0)
+        ? player.tasks.map((t, idx) => `
+          <div class="join-task-card-item ${t.completed ? 'completed' : ''}" style="border-left: 3px solid #f39c12;">
+            <input type="checkbox" data-jidx="${idx}" ${t.completed ? 'checked' : ''}>
+            <div class="join-task-info">
+              <h4 style="color:#f39c12;">🎭 FAKE TASK: ${t.title}</h4>
+              <p>${t.desc}</p>
+            </div>
+          </div>
+        `).join('')
+        : '';
+
       tasksContainer.innerHTML = `
-        <div class="join-task-card-item">
+        <div class="join-task-card-item" style="border-left: 3px solid #e74c3c;">
           <div class="join-task-info">
-            <h4>🔪 Eliminate Crewmates</h4>
-            <p>Touch crewmates secretly on the shoulder when no one is looking (40s cooldown).</p>
+            <h4 style="color:#e74c3c;">🔪 Primary Objective: Eliminate Crewmates</h4>
+            <p>Touch crewmates secretly on the shoulder when no one is looking (40s cooldown between kills).</p>
           </div>
         </div>
-        <div class="join-task-card-item">
-          <div class="join-task-info">
-            <h4>🎭 Blend In & Fake Tasks</h4>
-            <p>Pretend to perform real-life tasks around the room so crewmates don't suspect you!</p>
-          </div>
+        <div style="margin-top:1rem; margin-bottom:0.5rem; font-weight:bold; color:#f39c12; font-size:0.9rem; letter-spacing:0.5px;">
+          🎭 YOUR FAKE TASKS (Pretend to do these around the room to blend in!):
         </div>
+        ${fakeTasksListHtml}
       `;
+
+      tasksContainer.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+        chk.addEventListener('change', (e) => {
+          const idx = parseInt(e.target.getAttribute('data-jidx'));
+          player.tasks[idx].completed = e.target.checked;
+          this.renderJoinedPlayerDashboard();
+          this.broadcastStateUpdate();
+        });
+      });
     } else {
       const completedCount = player.tasks ? player.tasks.filter(t => t.completed).length : 0;
       const totalCount = player.tasks ? player.tasks.length : 0;
@@ -3064,11 +3086,11 @@ const PartyManager = {
       let tasksHtml = '';
 
       if (!isMonitorVisible) {
-        const doneTasks = p.role === 'crewmate' ? p.tasks.filter(t => t.completed).length : 0;
-        const totalTasks = p.role === 'crewmate' ? p.tasks.length : 0;
+        const doneTasks = p.tasks ? p.tasks.filter(t => t.completed).length : 0;
+        const totalTasks = p.tasks ? p.tasks.length : 0;
         tasksHtml = `
           <div style="font-size:0.85rem; color:#bdc3c7; font-style:italic;">
-            Role: 🔒 Hidden (Confidential) | Tasks: ${p.role === 'imposter' ? 'Fake Tasks' : `${doneTasks}/${totalTasks} Done`}
+            Role: 🔒 Hidden (Confidential) | Tasks: ${doneTasks}/${totalTasks} Done
           </div>
         `;
       } else {
