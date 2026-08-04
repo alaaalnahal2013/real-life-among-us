@@ -2945,16 +2945,30 @@ const PartyManager = {
         this.broadcastStateUpdate();
       } else {
         clearInterval(this.state.discussionTimerInterval);
+        this.state.discussionTimerInterval = null;
         this.state.isDiscussionRunning = false;
         this.broadcastStateUpdate();
+        this.tallyVotesAndEject();
       }
     }, 1000);
   },
 
   pauseDiscussionTimer() {
-    clearInterval(this.state.discussionTimerInterval);
+    if (this.state.discussionTimerInterval) {
+      clearInterval(this.state.discussionTimerInterval);
+      this.state.discussionTimerInterval = null;
+    }
     this.state.isDiscussionRunning = false;
     this.broadcastStateUpdate();
+  },
+
+  handleDismissMeeting() {
+    const votes = this.state.votes || {};
+    if (Object.keys(votes).length > 0) {
+      this.tallyVotesAndEject();
+    } else {
+      this.closeEmergencyMeeting();
+    }
   },
 
   closeEmergencyMeeting() {
@@ -3475,7 +3489,7 @@ const PartyManager = {
     document.getElementById('clientEmergencyBtn')?.addEventListener('click', () => this.triggerEmergencyMeeting());
     document.getElementById('startDiscussionTimerBtn')?.addEventListener('click', () => this.startDiscussionTimer());
     document.getElementById('pauseDiscussionTimerBtn')?.addEventListener('click', () => this.pauseDiscussionTimer());
-    document.getElementById('closeEmergencyBtn')?.addEventListener('click', () => this.closeEmergencyMeeting());
+    document.getElementById('closeEmergencyBtn')?.addEventListener('click', () => this.handleDismissMeeting());
 
     // Client Imposter Personal Cooldown Controls
     document.getElementById('joinStartCooldownBtn')?.addEventListener('click', () => this.startKillCooldown());
