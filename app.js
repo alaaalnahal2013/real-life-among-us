@@ -804,11 +804,15 @@ const AuthManager = {
           options: { data: { username: trimmedUsername } }
         });
         if (data && data.user) {
-          await window._supabase.from('profiles').upsert({
-            id: data.user.id,
-            username: trimmedUsername,
-            updated_at: new Date().toISOString()
-          }).catch(err => console.warn('[Auth] profile upsert note:', err));
+          try {
+            await window._supabase.from('profiles').upsert({
+              id: data.user.id,
+              username: trimmedUsername,
+              updated_at: new Date().toISOString()
+            });
+          } catch(err) {
+            console.warn('[Auth] profile upsert note:', err);
+          }
         }
       } catch(e) {
         console.warn('[Auth] Supabase signUp note (handled locally):', e);
@@ -984,10 +988,14 @@ const AuthManager = {
     }
 
     if (window._supabase && this.currentUser?.id) {
-      await window._supabase.from('profiles').update({
-        username: trimmed,
-        updated_at: new Date().toISOString()
-      }).eq('id', this.currentUser.id).catch(err => console.warn(err));
+      try {
+        await window._supabase.from('profiles').update({
+          username: trimmed,
+          updated_at: new Date().toISOString()
+        }).eq('id', this.currentUser.id);
+      } catch(err) {
+        console.warn('[Auth] updateUsername error:', err);
+      }
     }
 
     this.renderHeaderButton();
