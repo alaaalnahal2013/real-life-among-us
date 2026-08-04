@@ -1840,7 +1840,9 @@ const PartyManager = {
       return;
     }
 
-    overlay.style.display = 'flex';
+    overlay.classList.remove('hidden');
+    overlay.style.setProperty('display', 'flex', 'important');
+
     // Scroll modal to top
     const modalContent = document.querySelector('.party-modal-content');
     if (modalContent) modalContent.scrollTop = 0;
@@ -1859,9 +1861,13 @@ const PartyManager = {
         clearInterval(this._rulesTimer);
         this._rulesTimer = null;
       }
-      overlay.style.display = 'none';
+      overlay.classList.add('hidden');
+      overlay.style.setProperty('display', 'none', 'important');
       this.showStep('partyRevealStep');
       this.setupRevealStep();
+      if (!this.state.joinedPlayer) {
+        this.broadcastStateUpdate();
+      }
     };
 
     // "I'm Ready" skip button

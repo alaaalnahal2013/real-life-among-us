@@ -3436,8 +3436,10 @@ body {
   padding: 1rem;
   animation: rulesOverlayIn 0.5s ease;
 }
+.game-rules-overlay.hidden,
 .game-rules-overlay[style*="display:none"],
-.game-rules-overlay[style*="display: none"] {
+.game-rules-overlay[style*="display: none"],
+.game-rules-overlay[style*="none"] {
   display: none !important;
 }
 @keyframes rulesOverlayIn {
