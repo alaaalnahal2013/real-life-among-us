@@ -1720,6 +1720,7 @@ const PartyManager = {
   showStepInModal(modalId, stepId) {
     const modal = document.getElementById(modalId);
     if (!modal) return;
+    modal.classList.add('active');
     modal.querySelectorAll('.party-step').forEach(step => {
       step.classList.remove('active');
     });
@@ -1928,16 +1929,22 @@ const PartyManager = {
       }
     }
 
+    const hostControlBar = document.getElementById('hostRevealControlBar');
+    if (hostControlBar) {
+      hostControlBar.style.display = isHostDevice ? 'flex' : 'none';
+    }
+
     const myPlayerName = (this.state.joinedPlayer ? this.state.joinedPlayer.name : this.state.hostName) || '';
     
     let isMyTurn = false;
-    if (isCurrentPlayerNpc) {
-      // For NPC player (no real device), host device can see & click the roll button!
-      isMyTurn = isHostDevice;
+    if (isHostDevice) {
+      // On Host device running pass-and-play, host device can always roll for any player!
+      isMyTurn = true;
+    } else if (isCurrentPlayerNpc) {
+      isMyTurn = false;
     } else {
-      // For real human player, ONLY that player's real device can see & click the roll button
-      isMyTurn = (!myPlayerName && !this.state.joinedPlayer && !this.state.hostName) || 
-                 (myPlayerName && myPlayerName.trim().toLowerCase() === player.name.trim().toLowerCase());
+      // For remote client player on their own device, ONLY that player's device can see & click the roll button
+      isMyTurn = (myPlayerName && myPlayerName.trim().toLowerCase() === player.name.trim().toLowerCase());
     }
 
     const revealBtn = document.getElementById('revealCardBtn');
