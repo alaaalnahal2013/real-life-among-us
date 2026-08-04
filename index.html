@@ -138,13 +138,13 @@
                 <span class="slot-label label-top">C1</span>
                 <div class="card card-rules parchment-theme" id="rulesCardSlot">
                   <div class="card-inner">
-                    <h2 class="card-heading">GAME RULES</h2>
+                    <h2 class="card-heading">GAME RULES <span style="display:block; font-size:0.9rem; color:#f1c40f;">(قواعد اللعبة)</span></h2>
                     <div class="rules-body">
-                      <p><strong>THE WAY THE IMPOSTER KILLS THE CREWMATES IS BY A BRIEF TOUCH ON THE SHOULDER AND BETWEEN EACH KILL IS 40 SECS.</strong></p>
-                      <p>YOU CANNOT SCREAM OR SAY ANYTHING ONCE THE IMPOSTER HAS KILLED YOU.</p>
-                      <p>YOU CANNOT SPEAK DURING THE ROUND.</p>
-                      <p>IF YOU ARE KILLED, SIT DOWN AND DO NOT MAKE A SOUND.</p>
-                      <div class="rules-footer">GOOD LUCK.</div>
+                      <p><strong>THE WAY THE IMPOSTER KILLS THE CREWMATES IS BY A BRIEF TOUCH ON THE SHOULDER AND BETWEEN EACH KILL IS 40 SECS.</strong><br><small style="color:#f1c40f; font-weight:bold; display:block; margin-top:2px; direction:rtl;">طريقة قتل الخائن لأعضاء الطاقم هي بلمسة خفيفة على الكتف، ويفصل بين كل استبعاد 40 ثانية.</small></p>
+                      <p>YOU CANNOT SCREAM OR SAY ANYTHING ONCE THE IMPOSTER HAS KILLED YOU.<br><small style="color:#f1c40f; font-weight:bold; display:block; margin-top:2px; direction:rtl;">لا يمكنك الصراخ أو التحدث إطلاقاً بمجرد استبعادك من قبل الخائن.</small></p>
+                      <p>YOU CANNOT SPEAK DURING THE ROUND.<br><small style="color:#f1c40f; font-weight:bold; display:block; margin-top:2px; direction:rtl;">يُمنع التحدث تماماً أثناء الجولة.</small></p>
+                      <p>IF YOU ARE KILLED, SIT DOWN AND DO NOT MAKE A SOUND.<br><small style="color:#f1c40f; font-weight:bold; display:block; margin-top:2px; direction:rtl;">إذا تم استبعادك، اجلس فوراً ولا تصدر أي صوت.</small></p>
+                      <div class="rules-footer">GOOD LUCK. | حظاً موفقاً للجميع.</div>
                     </div>
                   </div>
                 </div>
@@ -621,16 +621,16 @@
   <!-- ===== GAME RULES OVERLAY (20-second countdown before game starts) ===== -->
   <div class="game-rules-overlay hidden" id="gameRulesOverlay" style="display:none;">
     <div class="game-rules-box">
-      <div class="rules-overlay-badge">📋 GAME RULES</div>
-      <h2 class="rules-overlay-title">READ THE RULES CAREFULLY!</h2>
+      <div class="rules-overlay-badge">📋 GAME RULES / قواعد اللعبة</div>
+      <h2 class="rules-overlay-title">READ THE RULES CAREFULLY!<br><span style="font-size:1.15rem; color:#f1c40f; font-weight:800; display:block; margin-top:4px; direction:rtl;">اقرأ القواعد بتركيز شديد!</span></h2>
 
       <div class="rules-overlay-card">
-        <div class="rules-overlay-item">🤫 <strong>THE IMPOSTER kills crewmates by briefly touching their shoulder.</strong> 40 seconds between each kill.</div>
-        <div class="rules-overlay-item">🤐 <strong>If you are killed — sit down, stay silent.</strong> No screaming or talking.</div>
-        <div class="rules-overlay-item">🚫 <strong>No talking during rounds.</strong> Only speak during Emergency Meetings.</div>
-        <div class="rules-overlay-item">🕵️ <strong>Crewmates:</strong> Complete your tasks and identify the Imposter!</div>
-        <div class="rules-overlay-item">🔪 <strong>Imposter:</strong> Blend in and eliminate Crewmates before they finish tasks!</div>
-        <div class="rules-overlay-footer">GOOD LUCK. MAY THE BEST CREW WIN. 🚀</div>
+        <div class="rules-overlay-item">🤫 <strong>THE IMPOSTER kills crewmates by briefly touching their shoulder.</strong> 40 seconds between each kill.<br><span style="color:#f1c40f; font-size:0.88rem; font-weight:bold; display:block; margin-top:3px; direction:rtl;">يتم الاستبعاد من قبل الخائن بلمسة خفيفة على الكتف (فترة انتظار 40 ثانية بين كل قتلة).</span></div>
+        <div class="rules-overlay-item">🤐 <strong>If you are killed — sit down, stay silent.</strong> No screaming or talking.<br><span style="color:#f1c40f; font-size:0.88rem; font-weight:bold; display:block; margin-top:3px; direction:rtl;">إذا تم استبعادك — اجلس واصمت فوراً. يُمنع التحدث أو الصراخ إطلاقاً.</span></div>
+        <div class="rules-overlay-item">🚫 <strong>No talking during rounds.</strong> Only speak during Emergency Meetings.<br><span style="color:#f1c40f; font-size:0.88rem; font-weight:bold; display:block; margin-top:3px; direction:rtl;">يُمنع التحدث أثناء الجولة. اطلب اجتماع الطوارئ للنقاش والتصويت فقط.</span></div>
+        <div class="rules-overlay-item">🕵️ <strong>Crewmates:</strong> Complete your tasks and identify the Imposter!<br><span style="color:#f1c40f; font-size:0.88rem; font-weight:bold; display:block; margin-top:3px; direction:rtl;">أعضاء الطاقم: أكملوا مهامكم واكتشفوا من هو الخائن!</span></div>
+        <div class="rules-overlay-item">🔪 <strong>Imposter:</strong> Blend in and eliminate Crewmates before they finish tasks!<br><span style="color:#f1c40f; font-size:0.88rem; font-weight:bold; display:block; margin-top:3px; direction:rtl;">الخائن: اندمج معهم واستبعد أعضاء الطاقم قبل إكمال مهامهم!</span></div>
+        <div class="rules-overlay-footer">GOOD LUCK. MAY THE BEST CREW WIN. 🚀<br><span style="color:#f1c40f; font-size:0.95rem; font-weight:800; display:block; margin-top:3px; direction:rtl;">حظاً موفقاً للجميع. أتمنى الفوز للأفضل. 🚀</span></div>
       </div>
 
       <div class="rules-countdown-wrap">

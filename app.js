@@ -10,6 +10,7 @@ const CARDS_DATA = [
     type: 'rules',
     theme: 'parchment',
     title: 'GAME RULES',
+    titleAr: 'قواعد اللعبة',
     content: {
       body: [
         'THE WAY THE IMPOSTER KILLS THE CREWMATES IS BY A BRIEF TOUCH ON THE SHOULDER AND BETWEEN EACH KILL IS 40 SECS.',
@@ -17,7 +18,14 @@ const CARDS_DATA = [
         'YOU CANNOT SPEAK DURING THE ROUND.',
         'IF YOU ARE KILLED, SIT DOWN AND DO NOT MAKE A SOUND.'
       ],
-      footer: 'GOOD LUCK.'
+      bodyAr: [
+        'طريقة قتل الخائن لأعضاء الطاقم هي بلمسة خفيفة على الكتف، ويفصل بين كل استبعاد 40 ثانية.',
+        'لا يمكنك الصراخ أو التحدث إطلاقاً بمجرد استبعادك من قبل الخائن.',
+        'يُمنع التحدث تماماً أثناء الجولة.',
+        'إذا تم استبعادك، اجلس فوراً ولا تصدر أي صوت.'
+      ],
+      footer: 'GOOD LUCK.',
+      footerAr: 'حظاً موفقاً للجميع.'
     }
   },
 
@@ -28,10 +36,13 @@ const CARDS_DATA = [
     roleType: 'crewmate',
     theme: 'teal',
     title: 'CREWMATE',
+    titleAr: 'عضو الطاقم',
     number: idx + 1,
     content: {
       desc: 'YOUR IDENTITY: CREWMATE.\nCOMPLETE TASKS TO WIN. HELP IDENTIFY THE IMPOSTER.',
-      subnote: 'Do not reveal your identity. Your color is NOT your identifier.'
+      descAr: 'هويتك: عضو الطاقم (Crewmate).\nأكمل المهام للفوز وساعد في كشف الخائن.',
+      subnote: 'Do not reveal your identity. Your color is NOT your identifier.',
+      subnoteAr: 'لا تكشف هويتك. لونك ليس معرفك الخاص.'
     }
   })),
 
@@ -42,10 +53,13 @@ const CARDS_DATA = [
     roleType: 'imposter',
     theme: 'teal',
     title: 'IMPOSTER',
+    titleAr: 'الخائن (المحتال)',
     number: 1,
     content: {
       desc: 'YOUR IDENTITY: IMPOSTER.\nELIMINATE CREWMATES TO WIN. BLEND IN.',
-      subnote: 'Keep your identity secret. Touch shoulder to kill (40s cooldown).'
+      descAr: 'هويتك: الخائن (Imposter).\nاقضِ على أعضاء الطاقم للفوز واندمج معهم.',
+      subnote: 'Keep your identity secret. Touch shoulder to kill (40s cooldown).',
+      subnoteAr: 'حافظ على سرية هويتك. المس الكتف للاستبعاد (انتظار 40 ثانية).'
     }
   },
 
@@ -55,7 +69,9 @@ const CARDS_DATA = [
     type: 'task',
     theme: 'parchment',
     title: 'ARRANGING THE CUPS',
+    titleAr: 'ترتيب الأكواب',
     desc: 'Take 3 cups from the kitchen and arrange them on the table.',
+    descAr: 'خذ 3 أكواب من المطبخ ورتبها على الطاولة.',
     ticks: 3,
     iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h1a4 4 0 0 1 0 8h-1M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/></svg>`
   },
@@ -64,7 +80,9 @@ const CARDS_DATA = [
     type: 'task',
     theme: 'parchment',
     title: 'FILLING THE WATER',
+    titleAr: 'تعبئة الماء',
     desc: 'Fill a glass with water and place it in a specific location.',
+    descAr: 'املأ كوباً بالماء وضعه في مكان محدد.',
     ticks: 2,
     iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`
   },
@@ -73,7 +91,9 @@ const CARDS_DATA = [
     type: 'task',
     theme: 'parchment',
     title: 'RECYCLING',
+    titleAr: 'إعادة التدوير',
     desc: 'Throw 3 empty cans in the trash can.',
+    descAr: 'ألقِ 3 علب فارغة في سلة المهملات.',
     ticks: 3,
     iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`
   },
@@ -82,7 +102,9 @@ const CARDS_DATA = [
     type: 'task',
     theme: 'parchment',
     title: 'TARGETING',
+    titleAr: 'التصويب',
     desc: 'Throw a small ball or object into the laundry basket from a distance of 3 steps.',
+    descAr: 'ألقِ كرة صغيرة أو غرضاً في سلة الغسيل من مسافة 3 خطوات.',
     ticks: 4,
     iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`
   },
@@ -91,7 +113,9 @@ const CARDS_DATA = [
     type: 'task',
     theme: 'parchment',
     title: 'QUICK PUZZLE',
+    titleAr: 'لغز سريع',
     desc: 'Assemble 4 puzzle pieces or rearrange scattered papers on the table.',
+    descAr: 'ركّب 4 قطع تركيب (بزل) أو رتب أوراقاً مبعثرة على الطاولة.',
     ticks: 3,
     iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.47 1.23 0 1.7l-1.568 1.568c-.23.23-.338.556-.289.878.204 1.341-.75 2.518-2.091 2.518h-1.568c-.322 0-.648.108-.878.338l-1.568 1.568c-.47.47-1.23.47-1.7 0l-1.568-1.568c-.23-.23-.556-.338-.878-.289-1.341.204-2.518-.75-2.518-2.091v-1.568c0-.322-.108-.648-.338-.878l-1.568-1.568c-.47-.47-.47-1.23 0-1.7l1.568-1.568c.23-.23.338-.556.289-.878-.204-1.341.75-2.518 2.091-2.518h1.568c.322 0 .648-.108.878-.338l1.568-1.568c.47-.47 1.23-.47 1.7 0l1.568 1.568c.23.23.556.338.878.289 1.341-.204 2.518.75 2.518 2.091v1.568z"/></svg>`
   },
@@ -100,7 +124,9 @@ const CARDS_DATA = [
     type: 'task',
     theme: 'parchment',
     title: 'ORDERING NUMBERS',
+    titleAr: 'ترتيب الأرقام',
     desc: 'Write numbers from 1 to 10 on a piece of paper in ascending order.',
+    descAr: 'اكتب الأرقام من 1 إلى 10 على ورقة بترتيب تصاعدي.',
     ticks: 2,
     iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>`
   },
@@ -109,7 +135,9 @@ const CARDS_DATA = [
     type: 'task',
     theme: 'parchment',
     title: 'BALL BALANCE',
+    titleAr: 'موازنة الكرة',
     desc: 'Balance a small ball on a spoon while walking 5 steps without dropping it.',
+    descAr: 'وازن كرة صغيرة على ملعقة وأنت تمشي 5 خطوات دون إسقاطها.',
     ticks: 4,
     iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M12 11v10"/></svg>`
   },
@@ -118,7 +146,9 @@ const CARDS_DATA = [
     type: 'task',
     theme: 'parchment',
     title: 'SECRET CODE',
+    titleAr: 'الرمز السري',
     desc: 'Write a secret 4-digit code on a paper and hide it under a cushion.',
+    descAr: 'اكتب رمزاً سرياً من 4 أرقام على ورقة وأخفها تحت وسادة.',
     ticks: 3,
     iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`
   },
@@ -127,7 +157,9 @@ const CARDS_DATA = [
     type: 'task',
     theme: 'parchment',
     title: 'CLEAN FILTER',
+    titleAr: 'تنظيف الفلتر',
     desc: 'Remove 3 small pieces of paper from the tray and drop them in the bin.',
+    descAr: 'أزل 3 قصاصات ورقية صغيرة من الصينية وألقها في السلة.',
     ticks: 2,
     iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>`
   },
@@ -136,7 +168,9 @@ const CARDS_DATA = [
     type: 'task',
     theme: 'parchment',
     title: 'CALIBRATE DISTRIBUTOR',
+    titleAr: 'معايرة الموزع',
     desc: 'Tap 3 specific colored objects in the room in correct sequence.',
+    descAr: 'المس 3 أغراض ملونة محددة في الغرفة بالترتيب الصحيح.',
     ticks: 3,
     iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`
   },
@@ -145,7 +179,9 @@ const CARDS_DATA = [
     type: 'task',
     theme: 'parchment',
     title: 'SWIPE CARD',
+    titleAr: 'تمرير البطاقة',
     desc: 'Slide a flat card through a slot or between two books smoothly.',
+    descAr: 'مرر بطاقة مسطحة عبر فتحة أو بين كتابين بسلاسة.',
     ticks: 2,
     iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`
   },
@@ -154,7 +190,9 @@ const CARDS_DATA = [
     type: 'task',
     theme: 'parchment',
     title: 'DOWNLOAD DATA',
+    titleAr: 'تنزيل البيانات',
     desc: 'Hold your phone screen against a designated wall for 5 seconds.',
+    descAr: 'ثبّت شاشة هاتفك على جدار مخصص لمدة 5 ثوانٍ.',
     ticks: 3,
     iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`
   }
@@ -171,10 +209,10 @@ function createCardElement(card) {
   if (card.type === 'rules') {
     innerHTML = `
       <div class="card-inner">
-        <h2 class="card-heading">${card.title}</h2>
+        <h2 class="card-heading">${card.title} ${card.titleAr ? `<span style="font-size:0.9rem; font-family:var(--font-heading); color:#f1c40f; display:block; margin-top:2px;">${card.titleAr}</span>` : ''}</h2>
         <div class="rules-body">
-          ${card.content.body.map(p => `<p>${p}</p>`).join('')}
-          <div class="rules-footer">${card.content.footer}</div>
+          ${card.content.body.map((p, i) => `<p>${p}${card.content.bodyAr ? `<br><small style="color:#f1c40f; font-weight:600; display:block; margin-top:3px; font-size:0.85rem; text-align:right; direction:rtl;">${card.content.bodyAr[i]}</small>` : ''}</p>`).join('')}
+          <div class="rules-footer">${card.content.footer} ${card.content.footerAr ? `| ${card.content.footerAr}` : ''}</div>
         </div>
       </div>
     `;
@@ -182,9 +220,9 @@ function createCardElement(card) {
     const isImposter = card.roleType === 'imposter';
     innerHTML = `
       <div class="card-inner">
-        <h3 class="role-title">${card.title} ${card.number > 1 ? `#${card.number}` : ''}</h3>
-        <p class="role-desc">${card.content.desc.replace('\n', '<br>')}</p>
-        <p class="role-subnote">${card.content.subnote}</p>
+        <h3 class="role-title">${card.title} ${card.titleAr ? `<span style="font-size:0.9rem; color:#f1c40f; display:inline-block; margin-left:4px;">(${card.titleAr})</span>` : ''} ${card.number > 1 ? `#${card.number}` : ''}</h3>
+        <p class="role-desc">${card.content.desc.replace('\n', '<br>')}${card.content.descAr ? `<br><span style="color:#f1c40f; font-size:0.88rem; display:block; margin-top:4px; font-weight:bold; direction:rtl;">${card.content.descAr.replace('\n', '<br>')}</span>` : ''}</p>
+        <p class="role-subnote">${card.content.subnote}${card.content.subnoteAr ? `<br><span style="color:#bdc3c7; font-size:0.8rem; display:block; margin-top:2px; direction:rtl;">${card.content.subnoteAr}</span>` : ''}</p>
         <div class="helmet-icon-wrap">
           <svg class="helmet-svg ${isImposter ? 'imposter-helmet' : ''}" viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="3">
             <path d="M18 50 V 22 C 18 12, 42 12, 42 22 V 50 Z"/>
@@ -201,9 +239,9 @@ function createCardElement(card) {
 
     innerHTML = `
       <div class="card-inner">
-        <div class="card-type-label">TASK:</div>
-        <h3 class="task-title">${card.title}</h3>
-        <p class="task-desc">${card.desc}</p>
+        <div class="card-type-label">TASK / مهمة:</div>
+        <h3 class="task-title">${card.title} ${card.titleAr ? `<span style="display:block; font-size:0.95rem; color:#f1c40f; font-weight:bold; margin-top:2px; direction:rtl;">${card.titleAr}</span>` : ''}</h3>
+        <p class="task-desc">${card.desc}${card.descAr ? `<br><span style="color:#e67e22; font-size:0.85rem; display:block; margin-top:4px; font-weight:600; direction:rtl;">${card.descAr}</span>` : ''}</p>
         <div class="card-bottom-gfx">
           ${card.iconSvg || ''}
           <div class="card-bar-ticks">${ticksHtml}</div>
@@ -1833,7 +1871,9 @@ const PartyManager = {
       const assignedTasks = taskShuffled.slice(0, tasksPerPlayer).map(t => ({
         id: t.id,
         title: t.title,
+        titleAr: t.titleAr || '',
         desc: t.desc || (t.content ? t.content.desc : ''),
+        descAr: t.descAr || '',
         completed: false,
         isFake: isImposter
       }));
@@ -2191,8 +2231,8 @@ const PartyManager = {
       cardContainer.innerHTML = '';
 
       const roleCardData = isImposter 
-        ? { type: 'role', theme: 'teal', roleType: 'imposter', title: 'IMPOSTER', content: { desc: 'YOUR IDENTITY: IMPOSTER.\nELIMINATE CREWMATES TO WIN. BLEND IN.', subnote: 'Keep your identity secret. Touch shoulder to kill.' } }
-        : { type: 'role', theme: 'teal', roleType: 'crewmate', title: 'CREWMATE', content: { desc: 'YOUR IDENTITY: CREWMATE.\nCOMPLETE TASKS TO WIN. HELP IDENTIFY THE IMPOSTER.', subnote: 'Do not reveal your identity.' } };
+        ? { type: 'role', theme: 'teal', roleType: 'imposter', title: 'IMPOSTER', titleAr: 'الخائن (المحتال)', content: { desc: 'YOUR IDENTITY: IMPOSTER.\nELIMINATE CREWMATES TO WIN. BLEND IN.', descAr: 'هويتك: الخائن (Imposter).\nاقضِ على أعضاء الطاقم للفوز واندمج معهم.', subnote: 'Keep your identity secret. Touch shoulder to kill.', subnoteAr: 'حافظ على سرية هويتك. المس الكتف للاستبعاد.' } }
+        : { type: 'role', theme: 'teal', roleType: 'crewmate', title: 'CREWMATE', titleAr: 'عضو الطاقم', content: { desc: 'YOUR IDENTITY: CREWMATE.\nCOMPLETE TASKS TO WIN. HELP IDENTIFY THE IMPOSTER.', descAr: 'هويتك: عضو الطاقم (Crewmate).\nأكمل المهام للفوز وساعد في كشف الخائن.', subnote: 'Do not reveal your identity.', subnoteAr: 'لا تكشف هويتك.' } };
 
       const cardEl = createCardElement(roleCardData);
       cardContainer.appendChild(cardEl);
@@ -2201,19 +2241,19 @@ const PartyManager = {
       const tasksList = document.getElementById('secretTasksList');
 
       if (isImposter) {
-        tasksBox.querySelector('h4').textContent = '🔪 IMPOSTER OBJECTIVES & FAKE TASKS:';
+        tasksBox.querySelector('h4').textContent = '🔪 IMPOSTER OBJECTIVES & FAKE TASKS / أهداف الخائن والمهام الوهمية:';
         const fakeTasksHtml = (player.tasks && player.tasks.length > 0)
-          ? player.tasks.map(t => `<li style="color:#f39c12; margin-top:0.3rem;">• <strong>🎭 FAKE TASK: ${t.title}</strong>: ${t.desc}</li>`).join('')
+          ? player.tasks.map(t => `<li style="color:#f39c12; margin-top:0.4rem;">• <strong>🎭 FAKE TASK: ${t.title} ${t.titleAr ? `(${t.titleAr})` : ''}</strong>: ${t.desc}${t.descAr ? `<br><small style="color:#f1c40f; font-weight:600; display:block; margin-left:1.2rem; direction:rtl;">${t.descAr}</small>` : ''}</li>`).join('')
           : '';
         tasksList.innerHTML = `
-          <li>• <strong>🔪 ELIMINATE CREWMATES:</strong> Touch shoulder secretly when alone (${this.state.settings ? this.state.settings.killCooldown : 40}s cooldown).</li>
-          <li style="margin-top:0.6rem; font-weight:bold; color:#f39c12;">• 🎭 YOUR FAKE TASKS TO BLEND IN:</li>
+          <li>• <strong>🔪 ELIMINATE CREWMATES (استبعاد أعضاء الطاقم):</strong> Touch shoulder secretly when alone (${this.state.settings ? this.state.settings.killCooldown : 40}s cooldown).</li>
+          <li style="margin-top:0.6rem; font-weight:bold; color:#f39c12;">• 🎭 YOUR FAKE TASKS TO BLEND IN (مهامك الوهمية للتمويه):</li>
           ${fakeTasksHtml}
         `;
       } else {
-        tasksBox.querySelector('h4').textContent = `📋 YOUR ASSIGNED REAL-LIFE TASKS (${player.tasks.length}):`;
+        tasksBox.querySelector('h4').textContent = `📋 YOUR ASSIGNED REAL-LIFE TASKS / مهامك المحددة (${player.tasks.length}):`;
         tasksList.innerHTML = player.tasks.map(t => `
-          <li>• <strong>${t.title}</strong>: ${t.desc}</li>
+          <li style="margin-top:0.4rem;">• <strong>${t.title} ${t.titleAr ? `(${t.titleAr})` : ''}</strong>: ${t.desc}${t.descAr ? `<br><small style="color:#f1c40f; font-weight:600; display:block; margin-left:1.2rem; direction:rtl;">${t.descAr}</small>` : ''}</li>
         `).join('');
       }
 
@@ -2355,7 +2395,9 @@ const PartyManager = {
         const assignedTasks = taskShuffled.slice(0, this.state.settings.tasksPerPlayer || 3).map(t => ({
           id: t.id,
           title: t.title,
+          titleAr: t.titleAr || '',
           desc: t.desc || (t.content ? t.content.desc : ''),
+          descAr: t.descAr || '',
           completed: false
         }));
 
@@ -2466,8 +2508,8 @@ const PartyManager = {
     cardHolder.innerHTML = '';
     const isImposter = player.role === 'imposter';
     const roleCardData = isImposter
-      ? { type: 'role', theme: 'teal', roleType: 'imposter', title: 'IMPOSTER', content: { desc: 'YOUR IDENTITY: IMPOSTER.\nELIMINATE CREWMATES TO WIN. BLEND IN.', subnote: 'Keep your identity secret. Touch shoulder to kill.' } }
-      : { type: 'role', theme: 'teal', roleType: 'crewmate', title: 'CREWMATE', content: { desc: 'YOUR IDENTITY: CREWMATE.\nCOMPLETE TASKS TO WIN. HELP IDENTIFY THE IMPOSTER.', subnote: 'Do not reveal your identity.' } };
+      ? { type: 'role', theme: 'teal', roleType: 'imposter', title: 'IMPOSTER', titleAr: 'الخائن (المحتال)', content: { desc: 'YOUR IDENTITY: IMPOSTER.\nELIMINATE CREWMATES TO WIN. BLEND IN.', descAr: 'هويتك: الخائن (Imposter).\nاقضِ على أعضاء الطاقم للفوز واندمج معهم.', subnote: 'Keep your identity secret. Touch shoulder to kill.', subnoteAr: 'حافظ على سرية هويتك. المس الكتف للاستبعاد.' } }
+      : { type: 'role', theme: 'teal', roleType: 'crewmate', title: 'CREWMATE', titleAr: 'عضو الطاقم', content: { desc: 'YOUR IDENTITY: CREWMATE.\nCOMPLETE TASKS TO WIN. HELP IDENTIFY THE IMPOSTER.', descAr: 'هويتك: عضو الطاقم (Crewmate).\nأكمل المهام للفوز وساعد في كشف الخائن.', subnote: 'Do not reveal your identity.', subnoteAr: 'لا تكشف هويتك.' } };
 
     const cardEl = createCardElement(roleCardData);
     cardHolder.appendChild(cardEl);
@@ -2498,8 +2540,8 @@ const PartyManager = {
           <div class="join-task-card-item ${t.completed ? 'completed' : ''}" style="border-left: 3px solid #f39c12;">
             <input type="checkbox" data-jidx="${idx}" ${t.completed ? 'checked' : ''}>
             <div class="join-task-info">
-              <h4 style="color:#f39c12;">🎭 FAKE TASK: ${t.title}</h4>
-              <p>${t.desc}</p>
+              <h4 style="color:#f39c12;">🎭 FAKE TASK: ${t.title} ${t.titleAr ? `(${t.titleAr})` : ''}</h4>
+              <p>${t.desc}${t.descAr ? `<br><span style="color:#f39c12; font-size:0.85rem; display:block; margin-top:2px; font-weight:bold; direction:rtl;">${t.descAr}</span>` : ''}</p>
             </div>
           </div>
         `).join('')
@@ -2508,12 +2550,12 @@ const PartyManager = {
       tasksContainer.innerHTML = `
         <div class="join-task-card-item" style="border-left: 3px solid #e74c3c;">
           <div class="join-task-info">
-            <h4 style="color:#e74c3c;">🔪 Primary Objective: Eliminate Crewmates</h4>
-            <p>Touch crewmates secretly on the shoulder when no one is looking (40s cooldown between kills).</p>
+            <h4 style="color:#e74c3c;">🔪 Primary Objective: Eliminate Crewmates / استبعاد أعضاء الطاقم</h4>
+            <p>Touch crewmates secretly on the shoulder when no one is looking (40s cooldown between kills).<br><span style="color:#e74c3c; font-size:0.85rem; font-weight:bold; display:block; margin-top:2px; direction:rtl;">المس أعضاء الطاقم على الكتف سراً دون أن يراك أحد (40 ثانية انتظار بين كل استبعاد).</span></p>
           </div>
         </div>
         <div style="margin-top:1rem; margin-bottom:0.5rem; font-weight:bold; color:#f39c12; font-size:0.9rem; letter-spacing:0.5px;">
-          🎭 YOUR FAKE TASKS (Pretend to do these around the room to blend in!):
+          🎭 YOUR FAKE TASKS / مهامك الوهمية (Pretend to do these around the room to blend in!):
         </div>
         ${fakeTasksListHtml}
       `;
@@ -2536,8 +2578,8 @@ const PartyManager = {
           <div class="join-task-card-item ${t.completed ? 'completed' : ''}">
             <input type="checkbox" data-jidx="${idx}" ${t.completed ? 'checked' : ''}>
             <div class="join-task-info">
-              <h4>${t.title}</h4>
-              <p>${t.desc}</p>
+              <h4>${t.title} ${t.titleAr ? `<span style="font-size:0.88rem; color:#f1c40f; font-weight:bold; margin-left:6px;">(${t.titleAr})</span>` : ''}</h4>
+              <p>${t.desc}${t.descAr ? `<br><span style="color:#f39c12; font-size:0.85rem; display:block; margin-top:2px; font-weight:bold; direction:rtl;">${t.descAr}</span>` : ''}</p>
             </div>
           </div>
         `).join('');
@@ -3134,8 +3176,8 @@ const PartyManager = {
         hostHolder.innerHTML = '';
         const isImp = hostPlayer.role === 'imposter';
         const roleCardData = isImp
-          ? { type: 'role', theme: 'teal', roleType: 'imposter', title: 'IMPOSTER', content: { desc: 'YOUR IDENTITY: IMPOSTER.\nELIMINATE CREWMATES TO WIN. BLEND IN.', subnote: 'Keep your identity secret. Touch shoulder to kill.' } }
-          : { type: 'role', theme: 'teal', roleType: 'crewmate', title: 'CREWMATE', content: { desc: 'YOUR IDENTITY: CREWMATE.\nCOMPLETE TASKS TO WIN. HELP IDENTIFY THE IMPOSTER.', subnote: 'Do not reveal your identity.' } };
+          ? { type: 'role', theme: 'teal', roleType: 'imposter', title: 'IMPOSTER', titleAr: 'الخائن (المحتال)', content: { desc: 'YOUR IDENTITY: IMPOSTER.\nELIMINATE CREWMATES TO WIN. BLEND IN.', descAr: 'هويتك: الخائن (Imposter).\nاقضِ على أعضاء الطاقم للفوز واندمج معهم.', subnote: 'Keep your identity secret. Touch shoulder to kill.', subnoteAr: 'حافظ على سرية هويتك. المس الكتف للاستبعاد.' } }
+          : { type: 'role', theme: 'teal', roleType: 'crewmate', title: 'CREWMATE', titleAr: 'عضو الطاقم', content: { desc: 'YOUR IDENTITY: CREWMATE.\nCOMPLETE TASKS TO WIN. HELP IDENTIFY THE IMPOSTER.', descAr: 'هويتك: عضو الطاقم (Crewmate).\nأكمل المهام للفوز وساعد في كشف الخائن.', subnote: 'Do not reveal your identity.', subnoteAr: 'لا تكشف هويتك.' } };
         hostHolder.appendChild(createCardElement(roleCardData));
       }
 
@@ -3146,7 +3188,7 @@ const PartyManager = {
           hostTasksHolder.innerHTML = `
             <div style="color:#e74c3c; font-weight:bold; font-size:0.95rem; margin-bottom:0.5rem;">🔪 Imposter Objectives: Touch crewmates secretly on shoulder & fake tasks around room!</div>
             <div style="background:rgba(231,76,60,0.15); border:1.5px solid rgba(231,76,60,0.4); border-radius:10px; padding:0.75rem;">
-              <h4 style="color:#e74c3c; font-size:0.95rem; margin-bottom:0.4rem;">🔪 SELECT TARGET TO KILL:</h4>
+              <h4 style="color:#e74c3c; font-size:0.95rem; margin-bottom:0.4rem;">🔪 SELECT TARGET TO KILL / اختر الهدف للاستبعاد:</h4>
               <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:0.5rem;">
                 ${aliveTargets.length === 0 ? '<div style="color:#bdc3c7; font-size:0.85rem;">No crewmate targets remaining.</div>' : aliveTargets.map(p => `
                   <div style="background:rgba(0,0,0,0.4); border:1px solid ${isReady ? '#e74c3c' : 'rgba(255,255,255,0.1)'}; border-radius:6px; padding:0.5rem; text-align:center;">
@@ -3167,11 +3209,11 @@ const PartyManager = {
           });
         } else if (hostPlayer.tasks) {
           hostTasksHolder.innerHTML = `
-            <h4 style="font-size:0.9rem; color:#f39c12; margin-bottom:0.5rem;">📋 YOUR ASSIGNED REAL-LIFE TASKS:</h4>
+            <h4 style="font-size:0.9rem; color:#f39c12; margin-bottom:0.5rem;">📋 YOUR ASSIGNED REAL-LIFE TASKS / مهامك المحددة:</h4>
             ${hostPlayer.tasks.map((t, tIdx) => `
               <label class="p-task-item ${t.completed ? 'completed' : ''}" style="margin-bottom:0.4rem; display:flex; align-items:center; gap:0.5rem; background:rgba(0,0,0,0.2); padding:0.4rem 0.8rem; border-radius:6px;">
                 <input type="checkbox" data-hpidx="${tIdx}" ${t.completed ? 'checked' : ''}>
-                <span><strong>${t.title}</strong>: ${t.desc}</span>
+                <span><strong>${t.title} ${t.titleAr ? `(${t.titleAr})` : ''}</strong>: ${t.desc}${t.descAr ? `<br><small style="color:#f39c12; font-weight:bold; margin-top:2px; display:block; direction:rtl;">${t.descAr}</small>` : ''}</span>
               </label>
             `).join('')}
           `;
