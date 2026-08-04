@@ -3122,11 +3122,9 @@ const PartyManager = {
       let tasksHtml = '';
 
       if (!isMonitorVisible) {
-        const doneTasks = p.tasks ? p.tasks.filter(t => t.completed).length : 0;
-        const totalTasks = p.tasks ? p.tasks.length : 0;
         tasksHtml = `
           <div style="font-size:0.85rem; color:#bdc3c7; font-style:italic;">
-            Role: 🔒 Hidden (Confidential) | Tasks: ${doneTasks}/${totalTasks} Done
+            Role: 🔒 Hidden (Confidential) | Tasks: 🔒 Hidden (Confidential)
           </div>
         `;
       } else {
