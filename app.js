@@ -1559,9 +1559,12 @@ const PartyManager = {
       if (clientOverlay) clientOverlay.style.display = 'none';
     }
 
-    // If winning team set, trigger Game End screen with 10s auto-return!
-    if (this.state.winningTeam) {
+    // If winning team set, trigger Game End screen with 10s auto-return (only once)!
+    if (this.state.winningTeam && !this._isGameEndScreenActive) {
+      this._isGameEndScreenActive = true;
       this.triggerGameEndScreen(this.state.winningTeam, this.state.gameEndReason);
+    } else if (!this.state.winningTeam) {
+      this._isGameEndScreenActive = false;
     }
 
     // Refresh Host Lobby & Waiting Room
@@ -2795,6 +2798,7 @@ const PartyManager = {
     this.pauseKillCooldown();
     this.pauseDiscussionTimer();
 
+    this._isGameEndScreenActive = false;
     this.state.assignedGame = null;
     this.state.votes = {};
     this.state.ejectionResult = null;
