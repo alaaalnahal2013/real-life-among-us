@@ -2798,16 +2798,22 @@ const PartyManager = {
     if (endModal) endModal.classList.remove('active');
 
     const joinModal = document.getElementById('joinPartyModal');
-    if (joinModal) joinModal.classList.remove('active');
-
-    // Open Host Party Modal at the Name Party pre-screen step
     const partyModal = document.getElementById('partyModal');
-    if (partyModal) partyModal.classList.add('active');
-    this.showStep('partyNameStep');
-    // Clear pre-screen input for new game
-    const preInput = document.getElementById('partyNameInputPre');
-    if (preInput) preInput.value = '';
-    this.renderPlayerChips();
+
+    if (this.state.joinedPlayer) {
+      // Joined remote player: return to join waiting step in the same room
+      if (partyModal) partyModal.classList.remove('active');
+      if (joinModal) joinModal.classList.add('active');
+      this.showStepInModal('joinPartyModal', 'joinWaitingStep');
+    } else {
+      // Host: return directly to partySetupStep in the same party with existing room code & players
+      if (joinModal) joinModal.classList.remove('active');
+      if (partyModal) partyModal.classList.add('active');
+      this.showStep('partySetupStep');
+      this.renderPlayerChips();
+      this.renderWaitingLobby();
+    }
+
     this.broadcastStateUpdate();
   },
 
@@ -3122,9 +3128,11 @@ const PartyManager = {
     grid.querySelectorAll('.p-status-toggle').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const pIdx = parseInt(e.target.getAttribute('data-pidx'));
-        this.state.assignedGame.players[pIdx].alive = !this.state.assignedGame.players[pIdx].alive;
-        this.renderDashboardPlayers();
-        this.checkWinLossConditions();
+        if (this.state.assignedGame && this.state.assignedGame.players[pIdx]) {
+          this.state.assignedGame.players[pIdx].alive = !this.state.assignedGame.players[pIdx].alive;
+          this.renderDashboardPlayers();
+          this.broadcastStateUpdate();
+        }
       });
     });
 
