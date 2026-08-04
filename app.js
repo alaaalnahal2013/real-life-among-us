@@ -198,36 +198,63 @@ const CARDS_DATA = [
   }
 ];
 
-// Global Helper to Render a Card Element
+// Global Helper to Render a Card Element with 3D Flip (English Front / Arabic Back)
 function createCardElement(card) {
   const cardEl = document.createElement('div');
   cardEl.className = `card card-${card.type} ${card.theme}-theme`;
   if (card.roleType === 'imposter') cardEl.classList.add('card-imposter');
 
-  let innerHTML = '';
+  let frontHTML = '';
+  let backHTML = '';
 
   if (card.type === 'rules') {
-    innerHTML = `
+    const bodyEn = card.content.body.map(p => `<p>${p}</p>`).join('');
+    const bodyAr = (card.content.bodyAr || card.content.body).map(p => `<p>${p}</p>`).join('');
+
+    frontHTML = `
       <div class="card-inner">
-        <h2 class="card-heading">${card.title} ${card.titleAr ? `<span style="font-size:0.9rem; font-family:var(--font-heading); color:#f1c40f; display:block; margin-top:2px;">${card.titleAr}</span>` : ''}</h2>
-        <div class="rules-body">
-          ${card.content.body.map((p, i) => `<p>${p}${card.content.bodyAr ? `<br><small style="color:#f1c40f; font-weight:600; display:block; margin-top:3px; font-size:0.85rem; text-align:right; direction:rtl;">${card.content.bodyAr[i]}</small>` : ''}</p>`).join('')}
-          <div class="rules-footer">${card.content.footer} ${card.content.footerAr ? `| ${card.content.footerAr}` : ''}</div>
-        </div>
+        <div class="card-flip-badge" title="Tap to flip to Arabic">🔄 AR</div>
+        <h2 class="card-heading">${card.title}</h2>
+        <div class="rules-body">${bodyEn}</div>
+        <div class="rules-footer">${card.content.footer}</div>
+      </div>
+    `;
+    backHTML = `
+      <div class="card-inner card-inner-ar" style="direction:rtl; text-align:right;">
+        <div class="card-flip-badge" title="Tap to flip to English">🔄 EN</div>
+        <h2 class="card-heading" style="font-family:var(--font-heading); color:#f1c40f;">${card.titleAr || 'قواعد اللعبة'}</h2>
+        <div class="rules-body">${bodyAr}</div>
+        <div class="rules-footer" style="color:#f1c40f;">${card.content.footerAr || 'حظاً موفقاً للجميع.'}</div>
       </div>
     `;
   } else if (card.type === 'role') {
     const isImposter = card.roleType === 'imposter';
-    innerHTML = `
+    frontHTML = `
       <div class="card-inner">
-        <h3 class="role-title">${card.title} ${card.titleAr ? `<span style="font-size:0.9rem; color:#f1c40f; display:inline-block; margin-left:4px;">(${card.titleAr})</span>` : ''} ${card.number > 1 ? `#${card.number}` : ''}</h3>
-        <p class="role-desc">${card.content.desc.replace('\n', '<br>')}${card.content.descAr ? `<br><span style="color:#f1c40f; font-size:0.88rem; display:block; margin-top:4px; font-weight:bold; direction:rtl;">${card.content.descAr.replace('\n', '<br>')}</span>` : ''}</p>
-        <p class="role-subnote">${card.content.subnote}${card.content.subnoteAr ? `<br><span style="color:#bdc3c7; font-size:0.8rem; display:block; margin-top:2px; direction:rtl;">${card.content.subnoteAr}</span>` : ''}</p>
+        <div class="card-flip-badge" title="Tap to flip to Arabic">🔄 AR</div>
+        <h3 class="role-title">${card.title} ${card.number > 1 ? `#${card.number}` : ''}</h3>
+        <p class="role-desc">${card.content.desc.replace(/\n/g, '<br>')}</p>
+        <p class="role-subnote">${card.content.subnote}</p>
         <div class="helmet-icon-wrap">
           <svg class="helmet-svg ${isImposter ? 'imposter-helmet' : ''}" viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="3">
             <path d="M18 50 V 22 C 18 12, 42 12, 42 22 V 50 Z"/>
             <ellipse cx="30" cy="24" rx="9" ry="6" stroke-width="3" fill="#aee0d6"/>
-            <path d="M14 30 V 46 C 14 48, 18 48, 18 46 V 30 Z"/>
+            <path d="M14 30 V 46 C 14 48, 18 48, 18 46 V 50 Z"/>
+          </svg>
+        </div>
+      </div>
+    `;
+    backHTML = `
+      <div class="card-inner card-inner-ar" style="direction:rtl; text-align:right;">
+        <div class="card-flip-badge" title="Tap to flip to English">🔄 EN</div>
+        <h3 class="role-title" style="color:#f1c40f;">${card.titleAr || (isImposter ? 'الخائن' : 'عضو الطاقم')} ${card.number > 1 ? `#${card.number}` : ''}</h3>
+        <p class="role-desc" style="font-weight:bold; font-size:0.8rem; margin-top:4px;">${(card.content.descAr || card.content.desc).replace(/\n/g, '<br>')}</p>
+        <p class="role-subnote" style="color:#bdc3c7; font-size:0.75rem; margin-top:2px;">${card.content.subnoteAr || card.content.subnote}</p>
+        <div class="helmet-icon-wrap">
+          <svg class="helmet-svg ${isImposter ? 'imposter-helmet' : ''}" viewBox="0 0 60 60" fill="none" stroke="currentColor" stroke-width="3">
+            <path d="M18 50 V 22 C 18 12, 42 12, 42 22 V 50 Z"/>
+            <ellipse cx="30" cy="24" rx="9" ry="6" stroke-width="3" fill="#aee0d6"/>
+            <path d="M14 30 V 46 C 14 48, 18 48, 18 46 V 50 Z"/>
           </svg>
         </div>
       </div>
@@ -237,11 +264,24 @@ function createCardElement(card) {
       `<span class="tick ${i < card.ticks ? 'active' : ''}"></span>`
     ).join('');
 
-    innerHTML = `
+    frontHTML = `
       <div class="card-inner">
-        <div class="card-type-label">TASK / مهمة:</div>
-        <h3 class="task-title">${card.title} ${card.titleAr ? `<span style="display:block; font-size:0.95rem; color:#f1c40f; font-weight:bold; margin-top:2px; direction:rtl;">${card.titleAr}</span>` : ''}</h3>
-        <p class="task-desc">${card.desc}${card.descAr ? `<br><span style="color:#e67e22; font-size:0.85rem; display:block; margin-top:4px; font-weight:600; direction:rtl;">${card.descAr}</span>` : ''}</p>
+        <div class="card-flip-badge" title="Tap to flip to Arabic">🔄 AR</div>
+        <div class="card-type-label">TASK:</div>
+        <h3 class="task-title">${card.title}</h3>
+        <p class="task-desc">${card.desc}</p>
+        <div class="card-bottom-gfx">
+          ${card.iconSvg || ''}
+          <div class="card-bar-ticks">${ticksHtml}</div>
+        </div>
+      </div>
+    `;
+    backHTML = `
+      <div class="card-inner card-inner-ar" style="direction:rtl; text-align:right;">
+        <div class="card-flip-badge" title="Tap to flip to English">🔄 EN</div>
+        <div class="card-type-label">مهمة:</div>
+        <h3 class="task-title" style="color:#f1c40f; font-size:0.95rem;">${card.titleAr || card.title}</h3>
+        <p class="task-desc" style="color:#e67e22; font-weight:bold; font-size:0.85rem;">${card.descAr || card.desc}</p>
         <div class="card-bottom-gfx">
           ${card.iconSvg || ''}
           <div class="card-bar-ticks">${ticksHtml}</div>
@@ -250,12 +290,15 @@ function createCardElement(card) {
     `;
   }
 
-  cardEl.innerHTML = innerHTML;
+  cardEl.innerHTML = `
+    <div class="card-flip-inner">
+      <div class="card-front">${frontHTML}</div>
+      <div class="card-back">${backHTML}</div>
+    </div>
+  `;
 
   cardEl.addEventListener('click', () => {
-    if (typeof openModalCard === 'function') {
-      openModalCard(card);
-    }
+    cardEl.classList.toggle('flipped');
   });
 
   return cardEl;
@@ -291,15 +334,27 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateDeckCard() {
     const currentCard = CARDS_DATA[currentDeckIndex];
     const frontTarget = document.getElementById('deckCardFront');
-    frontTarget.innerHTML = '';
-    frontTarget.appendChild(createCardElement(currentCard));
+    const backTarget = document.getElementById('deckCardBack');
+
+    if (frontTarget) {
+      frontTarget.innerHTML = '';
+      frontTarget.appendChild(createCardElement(currentCard));
+    }
+
+    if (backTarget) {
+      backTarget.innerHTML = '';
+      const backCardEl = createCardElement(currentCard);
+      backCardEl.classList.add('flipped');
+      backTarget.appendChild(backCardEl);
+    }
 
     document.getElementById('deckCurrentIdx').textContent = currentDeckIndex + 1;
     document.getElementById('deckTotalCount').textContent = CARDS_DATA.length;
-    document.getElementById('deckCardBadge').textContent = currentCard.title;
+    document.getElementById('deckCardBadge').textContent = `${currentCard.title} ${currentCard.titleAr ? `(${currentCard.titleAr})` : ''}`;
 
     // Reset flip state
-    document.getElementById('flipCardWrapper').classList.remove('flipped');
+    const wrapper = document.getElementById('flipCardWrapper');
+    if (wrapper) wrapper.classList.remove('flipped');
   }
 
   // Render Print Sheet
@@ -3633,6 +3688,28 @@ const PartyManager = {
     document.getElementById('playAgainBtn')?.addEventListener('click', () => this.resetGameToLobbySetup());
   }
 };
+
+// ===== GLOBAL 3D CARD FLIP DELEGATION FOR ALL CARDS =====
+document.addEventListener('click', (e) => {
+  const card = e.target.closest('.card');
+  if (!card) return;
+
+  // Do not flip when clicking inside interactive input controls or buttons
+  if (e.target.closest('button') || e.target.closest('input') || e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+
+  // If static card without 3D flip wrapper (e.g. blueprint cards in index.html)
+  if (!card.querySelector('.card-flip-inner')) {
+    const existingContent = card.innerHTML;
+    card.innerHTML = `
+      <div class="card-flip-inner">
+        <div class="card-front">${existingContent}</div>
+        <div class="card-back">${existingContent}</div>
+      </div>
+    `;
+  }
+
+  card.classList.toggle('flipped');
+});
 
 // Initialize PartyManager on DOM load
 if (document.readyState === 'loading') {
