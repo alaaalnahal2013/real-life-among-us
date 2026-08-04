@@ -1162,8 +1162,9 @@
   </div>
 
   <!-- Victory / Defeat Overlay Modal with 10-Second Auto-Return -->
-  <div class="modal-overlay" id="gameEndModal" style="z-index: 10000;">
-    <div class="modal-content party-modal-content" id="gameEndModalContent" style="text-align: center; max-width: 500px; width: 92vw; background: radial-gradient(circle at 30% 30%, #2c3e50 0%, #111 100%); border: 3px solid #f1c40f; border-radius: 20px; padding: 2rem 1.5rem;">
+  <div class="modal-overlay hidden" id="gameEndModal" style="z-index: 10000; display: none;">
+    <div class="modal-content party-modal-content" id="gameEndModalContent" style="text-align: center; max-width: 500px; width: 92vw; background: radial-gradient(circle at 30% 30%, #2c3e50 0%, #111 100%); border: 3px solid #f1c40f; border-radius: 20px; padding: 2rem 1.5rem; position: relative;">
+      <button class="modal-close" id="gameEndModalCloseBtn" style="top: 12px; right: 16px; font-size: 1.8rem; cursor: pointer; border: none; background: transparent; color: #fff; position: absolute;">&times;</button>
       <div id="gameEndIcon" style="font-size: 5rem; margin-bottom: 0.5rem; line-height:1;">🏆</div>
       <h2 id="gameEndTitle" style="font-family: var(--font-heading); font-size: 2rem; font-weight: 900; color: #2ecc71; margin-bottom: 0.4rem; letter-spacing:1px;">VICTORY!</h2>
       <p id="gameEndSubtitle" style="font-size: 1rem; color: #ecf0f1; margin-bottom: 1.5rem; line-height:1.5;">Crewmates completed all tasks and ejected the imposters!</p>

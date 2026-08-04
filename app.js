@@ -1566,6 +1566,16 @@ const PartyManager = {
       this.triggerGameEndScreen(this.state.winningTeam, this.state.gameEndReason);
     } else if (!this.state.winningTeam) {
       this._isGameEndScreenActive = false;
+      const endModal = document.getElementById('gameEndModal');
+      if (endModal && (endModal.classList.contains('active') || endModal.style.display !== 'none')) {
+        endModal.classList.remove('active');
+        endModal.classList.add('hidden');
+        endModal.style.setProperty('display', 'none', 'important');
+        if (this.state.gameEndInterval) {
+          clearInterval(this.state.gameEndInterval);
+          this.state.gameEndInterval = null;
+        }
+      }
     }
 
     // Refresh Host Lobby & Waiting Room
@@ -1628,6 +1638,13 @@ const PartyManager = {
           this.showStep('partyDashboardStep');
           this.renderDashboardPlayers();
         }
+      }
+    } else if (!this.state.assignedGame) {
+      // Game is not active / reset to lobby setup
+      if (this.state.joinedPlayer) {
+        this.showStepInModal('joinPartyModal', 'joinWaitingStep');
+      } else if (this.state.roomCode) {
+        this.showStep('partySetupStep');
       }
     }
   },
@@ -1743,6 +1760,8 @@ const PartyManager = {
     const modal = document.getElementById(modalId);
     if (!modal) return;
     modal.classList.add('active');
+    modal.classList.remove('hidden');
+    modal.style.setProperty('display', 'flex', 'important');
     modal.querySelectorAll('.party-step').forEach(step => {
       step.classList.remove('active');
     });
@@ -2798,6 +2817,14 @@ const PartyManager = {
       };
     }
 
+    const closeBtn = document.getElementById('gameEndModalCloseBtn');
+    if (closeBtn) {
+      closeBtn.onclick = (e) => {
+        if (e) e.preventDefault();
+        this.resetGameToLobbySetup();
+      };
+    }
+
     if (this.state.gameEndInterval) clearInterval(this.state.gameEndInterval);
     this.state.gameEndCountdown = 10;
     const cdText = document.getElementById('gameEndCountdownText');
@@ -3301,10 +3328,17 @@ const PartyManager = {
     const hostBtn = document.getElementById('hostPartyBtn');
     if (hostBtn) {
       hostBtn.addEventListener('click', () => {
-        document.getElementById('partyModal').classList.add('active');
+        const endModal = document.getElementById('gameEndModal');
+        if (endModal) {
+          endModal.classList.remove('active');
+          endModal.classList.add('hidden');
+          endModal.style.setProperty('display', 'none', 'important');
+        }
         if (this.state.assignedGame) {
           this.showStep('partyDashboardStep');
           this.renderDashboardPlayers();
+        } else if (this.state.roomCode) {
+          this.showStep('partySetupStep');
         } else {
           this.showStep('partyNameStep');
           // Clear the pre-screen input so user types their own name
@@ -3400,10 +3434,17 @@ const PartyManager = {
     const joinBtn = document.getElementById('joinPartyBtn');
     if (joinBtn) {
       joinBtn.addEventListener('click', () => {
-        document.getElementById('joinPartyModal').classList.add('active');
+        const endModal = document.getElementById('gameEndModal');
+        if (endModal) {
+          endModal.classList.remove('active');
+          endModal.classList.add('hidden');
+          endModal.style.setProperty('display', 'none', 'important');
+        }
         if (this.state.joinedPlayer && this.state.assignedGame) {
           this.showStepInModal('joinPartyModal', 'joinDashboardStep');
           this.renderJoinedPlayerDashboard();
+        } else if (this.state.joinedPlayer) {
+          this.showStepInModal('joinPartyModal', 'joinWaitingStep');
         } else {
           this.showStepInModal('joinPartyModal', 'joinSetupStep');
           const codeInput = document.getElementById('joinRoomCodeInput');
