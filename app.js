@@ -1840,7 +1840,7 @@ const PartyManager = {
       return;
     }
 
-    overlay.style.display = '';
+    overlay.style.display = 'flex';
     // Scroll modal to top
     const modalContent = document.querySelector('.party-modal-content');
     if (modalContent) modalContent.scrollTop = 0;
@@ -1851,8 +1851,14 @@ const PartyManager = {
     if (numEl) numEl.textContent = secondsLeft;
     if (barEl) barEl.style.width = '100%';
 
+    let finished = false;
     const finish = () => {
-      clearInterval(this._rulesTimer);
+      if (finished) return;
+      finished = true;
+      if (this._rulesTimer) {
+        clearInterval(this._rulesTimer);
+        this._rulesTimer = null;
+      }
       overlay.style.display = 'none';
       this.showStep('partyRevealStep');
       this.setupRevealStep();
@@ -1860,13 +1866,11 @@ const PartyManager = {
 
     // "I'm Ready" skip button
     const readyBtn = document.getElementById('rulesReadyBtn');
-    const skipHandler = () => {
-      readyBtn?.removeEventListener('click', skipHandler);
-      finish();
-    };
     if (readyBtn) {
-      readyBtn.removeEventListener('click', skipHandler); // clear any old
-      readyBtn.addEventListener('click', skipHandler);
+      readyBtn.onclick = (e) => {
+        if (e) e.preventDefault();
+        finish();
+      };
     }
 
     if (this._rulesTimer) clearInterval(this._rulesTimer);
@@ -1876,7 +1880,6 @@ const PartyManager = {
       if (numEl) numEl.textContent = Math.max(0, secondsLeft);
       if (barEl) barEl.style.width = `${Math.max(0, (secondsLeft / 20) * 100)}%`;
       if (secondsLeft <= 0) {
-        readyBtn?.removeEventListener('click', skipHandler);
         finish();
       }
     }, 1000);
