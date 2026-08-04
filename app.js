@@ -1386,6 +1386,7 @@ const PartyManager = {
         settings: this.state.settings,
         assignedGame: this.state.assignedGame,
         revealIndex: this.state.revealIndex || 0,
+        isRulesOverlayActive: !!this.state.isRulesOverlayActive,
         isEmergencyActive: !!this.state.isEmergencyActive,
         discussionSeconds: this.state.discussionSeconds || 90,
         killTimerSeconds: this.state.killTimerSeconds || 40,
@@ -1579,6 +1580,24 @@ const PartyManager = {
       if (matched) {
         this.state.joinedPlayer = matched;
         this.renderJoinedPlayerDashboard();
+      }
+    }
+
+    // Sync Game Rules Overlay across all devices
+    if (data.isRulesOverlayActive !== undefined) {
+      const overlay = document.getElementById('gameRulesOverlay');
+      const isCurrentlyHidden = overlay && (overlay.classList.contains('hidden') || overlay.style.display === 'none');
+      this.state.isRulesOverlayActive = data.isRulesOverlayActive;
+
+      if (data.isRulesOverlayActive && isCurrentlyHidden) {
+        this.showGameRulesOverlay();
+      } else if (!data.isRulesOverlayActive && overlay && !isCurrentlyHidden) {
+        overlay.classList.add('hidden');
+        overlay.style.setProperty('display', 'none', 'important');
+        if (this._rulesTimer) {
+          clearInterval(this._rulesTimer);
+          this._rulesTimer = null;
+        }
       }
     }
 
@@ -1822,6 +1841,7 @@ const PartyManager = {
       }
     }
 
+    this.state.isRulesOverlayActive = true;
     this.broadcastStateUpdate();
 
     this.state.revealIndex = 0;
@@ -1836,6 +1856,7 @@ const PartyManager = {
   showGameRulesOverlay() {
     const overlay = document.getElementById('gameRulesOverlay');
     if (!overlay) {
+      this.state.isRulesOverlayActive = false;
       // Fallback: go directly to reveal step
       this.showStep('partyRevealStep');
       this.setupRevealStep();
@@ -1863,6 +1884,7 @@ const PartyManager = {
         clearInterval(this._rulesTimer);
         this._rulesTimer = null;
       }
+      this.state.isRulesOverlayActive = false;
       overlay.classList.add('hidden');
       overlay.style.setProperty('display', 'none', 'important');
       this.showStep('partyRevealStep');
