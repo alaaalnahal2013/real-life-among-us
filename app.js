@@ -2740,7 +2740,9 @@ const PartyManager = {
     const modal = document.getElementById('gameEndModal');
     if (!modal) return;
 
+    modal.classList.remove('hidden');
     modal.classList.add('active');
+    modal.style.setProperty('display', 'flex', 'important');
 
     const localPlayer = this.state.joinedPlayer || (this.state.assignedGame ? this.state.assignedGame.players.find(p => p.name.toLowerCase() === (this.state.hostName || '').toLowerCase()) : null);
     const localRole = localPlayer ? localPlayer.role : 'crewmate';
@@ -2761,6 +2763,14 @@ const PartyManager = {
       if (iconEl) iconEl.textContent = '💀';
       if (titleEl) { titleEl.textContent = 'DEFEAT!'; titleEl.style.color = '#e74c3c'; }
       if (subEl) subEl.textContent = `💀 YOU LOST! ${reason}`;
+    }
+
+    const returnBtn = document.getElementById('gameEndReturnNowBtn');
+    if (returnBtn) {
+      returnBtn.onclick = (e) => {
+        if (e) e.preventDefault();
+        this.resetGameToLobbySetup();
+      };
     }
 
     if (this.state.gameEndInterval) clearInterval(this.state.gameEndInterval);
@@ -2795,20 +2805,40 @@ const PartyManager = {
     this.state.hasRolledCard = false;
 
     const endModal = document.getElementById('gameEndModal');
-    if (endModal) endModal.classList.remove('active');
+    if (endModal) {
+      endModal.classList.remove('active');
+      endModal.classList.add('hidden');
+      endModal.style.setProperty('display', 'none', 'important');
+    }
 
     const joinModal = document.getElementById('joinPartyModal');
     const partyModal = document.getElementById('partyModal');
 
     if (this.state.joinedPlayer) {
       // Joined remote player: return to join waiting step in the same room
-      if (partyModal) partyModal.classList.remove('active');
-      if (joinModal) joinModal.classList.add('active');
+      if (partyModal) {
+        partyModal.classList.remove('active');
+        partyModal.classList.add('hidden');
+        partyModal.style.setProperty('display', 'none', 'important');
+      }
+      if (joinModal) {
+        joinModal.classList.add('active');
+        joinModal.classList.remove('hidden');
+        joinModal.style.setProperty('display', 'flex', 'important');
+      }
       this.showStepInModal('joinPartyModal', 'joinWaitingStep');
     } else {
       // Host: return directly to partySetupStep in the same party with existing room code & players
-      if (joinModal) joinModal.classList.remove('active');
-      if (partyModal) partyModal.classList.add('active');
+      if (joinModal) {
+        joinModal.classList.remove('active');
+        joinModal.classList.add('hidden');
+        joinModal.style.setProperty('display', 'none', 'important');
+      }
+      if (partyModal) {
+        partyModal.classList.add('active');
+        partyModal.classList.remove('hidden');
+        partyModal.style.setProperty('display', 'flex', 'important');
+      }
       this.showStep('partySetupStep');
       this.renderPlayerChips();
       this.renderWaitingLobby();
