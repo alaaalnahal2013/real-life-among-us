@@ -1,52 +1,55 @@
-# 🚀 Among Us Real-Life Game Set & Multi-Device Party App
+# 🌐 Real-Time Multiplayer & Database Foundation
 
-A **100% Free & Open Public** web application to host and play real-life Among Us games with friends using phones, tablets, and laptops!
+A clean, modern, multi-device multiplayer room and database foundation ready for building your new web application or game.
 
----
-
-## 🌟 100% Free Features
-
-- **100% Free Forever**: No sign-up, no credit cards, no backend server costs.
-- **Multi-Device Public Play**: Anyone on any phone, tablet, laptop, or PC can join using the Room Code or a Direct Share Link.
-- **Confidential Player Screens**: Every player (including the host) gets their own secret role card, assigned real-life tasks, and emergency button.
-- **3D Photorealistic Metallic Emergency Meeting Button**: Features an authentic metallic base plate, 3D red dome button, and real audio siren sound sweep.
-- **Imposter Cooldown Controls**: Imposters manage their kill cooldown directly on their device screen.
-- **Printable Card Prototype**: Download or print real-life card physical prototypes as PDF or PNG.
+Built with **Supabase Real-Time**, **Postgres Database**, and **Supabase Auth / Profiles**.
 
 ---
 
-## 🌐 3 Easy Ways to Host Live on the Public Web (100% Free)
+## 🚀 Features Included
 
-### Option 1: Drag & Drop on Netlify Drop (Easiest - 30 Seconds!)
-1. Go to **[Netlify Drop](https://app.netlify.com/drop)** in your web browser.
-2. Drag and drop this project folder (`judy`) onto the Netlify Drop area.
-3. Your website is instantly published **LIVE on the public internet** for free with a public `.netlify.app` URL!
+### 1. 🔄 Real-Time Multi-Device Room Engine
+- **Host a Room**: Generate custom room codes (`ROOM-XXXX`), set max players, and manage room settings.
+- **Join by Code / URL**: Share room links directly with friends using URL hash parameters (`#room=ROOM-XXXX`).
+- **Waiting Lobby**: Real-time synced player list with connection status, radar pulse animation, and ready checks.
+- **Live Session Sync**: Bi-directional real-time state synchronization across all connected phones, tablets, and PCs using Supabase `postgres_changes`.
+- **Live Room Chat**: Built-in real-time chat and activity feed for all room members.
+- **Room Lifecycle**: Start session, reset session, or disband room across all connected clients simultaneously.
 
----
-
-### Option 2: GitHub Pages (100% Free)
-1. Push this code repository to GitHub.
-2. Go to your repository **Settings** -> **Pages**.
-3. Under **Build and deployment** -> **Branch**, select `main` (or `master`) and click **Save**.
-4. GitHub Pages will publish your site live for free at `https://yourusername.github.io/repository-name/`.
-
----
-
-### Option 3: Vercel (100% Free)
-1. Go to **[Vercel](https://vercel.com/)** and log in for free.
-2. Click **New Project** and import this project folder or GitHub repository.
-3. Click **Deploy**. Vercel will host your site live for free with a `.vercel.app` URL!
+### 2. 🗄️ Database & Authentication (Supabase)
+- **Supabase Client**: Configured in `supabase-config.js` with real-time websocket support.
+- **User Authentication**: Email/Password Sign Up, Log In, and Log Out.
+- **User Profiles**: Synced with the Supabase `profiles` table (`username`, `avatar_url`, `updated_at`).
+- **Avatar Storage**: Upload custom profile avatars directly to the Supabase `avatars` storage bucket.
+- **Guest Mode**: Play immediately as a guest without creating an account (with local session persistence).
+- **Game Rooms Storage**: Persistent state stored and queried from the `game_rooms` table.
 
 ---
 
-## 🎮 How to Play
+## 🛠️ How to Extend for Your New Project
 
-1. **Host a Game**:
-   - Open the live website and click **🎉 Host a Party**.
-   - Set the number of Imposters, kill cooldown timer, and tasks per player.
-   - Click **🚀 Deal Cards & Start Secret Pass-and-Play** or share the Room Code (`AMONG-XXXX`).
+1. **Add Custom Game/App Logic**:
+   - `MultiplayerManager.state.sharedData` is available for custom room-wide state.
+   - Use `MultiplayerManager.broadcastStateUpdate()` to sync any custom data to all connected devices in milliseconds.
+2. **Handle Events**:
+   - Listen to `handleRemoteSync(data)` in `app.js` to trigger custom animations, turns, game boards, or interactions.
+3. **Customize the UI**:
+   - Modify `index.html`'s `#mainProjectArea` to render your game canvas, board, quiz, or dashboard.
+   - Customize theme variables in `style.css`.
 
-2. **Join from Phone / Device**:
-   - Friends open the website on their phone/tablet and click **🎮 Join a Party**.
-   - Enter the Room Code (or click the shared Room Link).
-   - Each player gets their own secret screen with their secret role, tasks, and 3D Emergency Meeting Button!
+---
+
+## 🌐 Deploy to Web (100% Free)
+
+### Netlify Drop
+1. Go to [Netlify Drop](https://app.netlify.com/drop).
+2. Drag and drop this project folder.
+3. Your multiplayer app is live instantly!
+
+### Vercel
+1. Run `vercel` or link your GitHub repo on [Vercel](https://vercel.com/).
+2. Deploys instantly with `vercel.json` routing.
+
+### GitHub Pages
+1. Push this repository to GitHub.
+2. Under **Settings -> Pages**, set source to `main` branch.

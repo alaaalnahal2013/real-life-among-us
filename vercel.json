@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "among-us-real-life-game",
+  "name": "realtime-multiplayer-hub",
   "cleanUrls": true,
   "routes": [
     { "src": "/(.*)", "dest": "/$1" }
