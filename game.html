@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voxel Souls — Minecraft × Dark Souls</title>
+    <meta name="description" content="A Minecraft-style voxel world with Dark Souls combat: stamina, dodge roll, lock-on, estus flask, bonfire respawn, and one brutal boss fight.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="game.css">
+</head>
+<body>
+    <!-- Three.js Canvas -->
+    <div id="game-container"></div>
+
+    <!-- HUD Overlay -->
+    <div id="hud" class="hidden">
+        <!-- Player Stats -->
+        <div id="player-stats">
+            <div id="health-bar-container" class="stat-bar-container">
+                <div id="health-bar-bg" class="stat-bar-bg">
+                    <div id="health-bar-damage" class="stat-bar-damage"></div>
+                    <div id="health-bar" class="stat-bar health"></div>
+                </div>
+                <span id="health-text" class="stat-text">100 / 100</span>
+            </div>
+            <div id="stamina-bar-container" class="stat-bar-container">
+                <div id="stamina-bar-bg" class="stat-bar-bg">
+                    <div id="stamina-bar" class="stat-bar stamina"></div>
+                </div>
+                <span id="stamina-text" class="stat-text">100 / 100</span>
+            </div>
+        </div>
+
+        <!-- Estus Flask -->
+        <div id="estus-container">
+            <div id="estus-icon">🧪</div>
+            <span id="estus-count">5</span>
+        </div>
+
+        <!-- Lock-on Indicator -->
+        <div id="lock-on-indicator" class="hidden">
+            <div class="lock-on-ring"></div>
+            <div class="lock-on-ring inner"></div>
+        </div>
+
+        <!-- Boss Health Bar -->
+        <div id="boss-bar-container" class="hidden">
+            <div id="boss-name">GORVATH, THE CORRUPTED</div>
+            <div id="boss-bar-bg" class="stat-bar-bg boss">
+                <div id="boss-bar-damage" class="stat-bar-damage"></div>
+                <div id="boss-bar" class="stat-bar boss-health"></div>
+            </div>
+        </div>
+
+        <!-- Interaction Prompt -->
+        <div id="interaction-prompt" class="hidden">
+            <span class="prompt-key">E</span>
+            <span class="prompt-text">Rest at Bonfire</span>
+        </div>
+
+        <!-- Controls hint -->
+        <div id="controls-hint">
+            <span>WASD Move</span>
+            <span>Mouse Look</span>
+            <span>LMB Attack</span>
+            <span>Space Dodge</span>
+            <span>Tab Lock-on</span>
+            <span>R Estus</span>
+        </div>
+
+        <!-- Minimap -->
+        <canvas id="minimap" width="150" height="150"></canvas>
+    </div>
+
+    <!-- Title Screen -->
+    <div id="title-screen">
+        <div class="title-content">
+            <div class="title-ember"></div>
+            <h1 class="title-text">VOXEL<br><span class="title-accent">SOULS</span></h1>
+            <p class="title-subtitle">Prepare to Die... in Blocks</p>
+            <button id="start-btn" class="souls-btn">
+                <span class="btn-text">BEGIN JOURNEY</span>
+                <span class="btn-glow"></span>
+            </button>
+            <div class="title-controls">
+                <p>WASD — Move &nbsp;|&nbsp; Mouse — Look &nbsp;|&nbsp; LMB — Attack</p>
+                <p>Space — Dodge Roll &nbsp;|&nbsp; Tab — Lock On &nbsp;|&nbsp; R — Estus Flask</p>
+                <p>E — Rest at Bonfire</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Death Screen -->
+    <div id="death-screen" class="hidden">
+        <div class="death-content">
+            <h1 class="death-text">YOU DIED</h1>
+            <button id="respawn-btn" class="souls-btn death-btn">
+                <span class="btn-text">RETURN TO BONFIRE</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Victory Screen -->
+    <div id="victory-screen" class="hidden">
+        <div class="victory-content">
+            <h1 class="victory-text">HEIR OF FIRE DESTROYED</h1>
+            <p class="victory-sub">GORVATH, THE CORRUPTED — VANQUISHED</p>
+            <button id="restart-btn" class="souls-btn victory-btn">
+                <span class="btn-text">JOURNEY AGAIN</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="hidden">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">Generating World...</p>
+        </div>
+    </div>
+
+    <!-- Damage Flash -->
+    <div id="damage-flash"></div>
+    <!-- Crosshair -->
+    <div id="crosshair"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>

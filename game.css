@@ -1,0 +1,581 @@
+/* ========================================
+   VOXEL SOULS — Game Stylesheet
+   Dark Souls aesthetic meets voxel world
+   ======================================== */
+
+/* ---------- Reset & Base ---------- */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --souls-gold: #d4a843;
+    --souls-gold-dim: #8a6d2b;
+    --souls-red: #8b2020;
+    --souls-red-bright: #c0392b;
+    --souls-green: #2d8a4e;
+    --souls-green-bright: #27ae60;
+    --souls-blue: #1a5276;
+    --souls-stamina: #2ecc71;
+    --souls-dark: #0a0a0a;
+    --souls-darker: #050505;
+    --souls-ember: #e67e22;
+    --souls-ember-glow: #f39c12;
+    --font-display: 'Cinzel', serif;
+    --font-ui: 'Inter', sans-serif;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    font-family: var(--font-ui);
+    color: #ddd;
+    cursor: crosshair;
+    user-select: none;
+}
+
+/* ---------- Game Container ---------- */
+#game-container {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+}
+
+#game-container canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* ---------- HUD Overlay ---------- */
+#hud {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    pointer-events: none;
+}
+
+#hud > * {
+    pointer-events: auto;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ---------- Player Stats ---------- */
+#player-stats {
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 300px;
+    pointer-events: none;
+}
+
+.stat-bar-container {
+    position: relative;
+}
+
+.stat-bar-bg {
+    width: 100%;
+    height: 22px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+}
+
+.stat-bar-bg.boss {
+    height: 18px;
+    border-color: var(--souls-gold-dim);
+}
+
+.stat-bar {
+    height: 100%;
+    transition: width 0.3s ease-out;
+    position: relative;
+    z-index: 2;
+}
+
+.stat-bar-damage {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: #c0392b;
+    transition: width 0.8s ease-out 0.3s;
+    z-index: 1;
+}
+
+.stat-bar.health {
+    background: linear-gradient(180deg, #c0392b 0%, #8b2020 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 0 8px rgba(192, 57, 43, 0.4);
+}
+
+.stat-bar.stamina {
+    background: linear-gradient(180deg, #2ecc71 0%, #1a8a4a 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 0 8px rgba(46, 204, 113, 0.3);
+}
+
+.stat-bar.boss-health {
+    background: linear-gradient(180deg, var(--souls-gold) 0%, var(--souls-gold-dim) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 10px rgba(212, 168, 67, 0.4);
+}
+
+.stat-text {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    z-index: 3;
+    letter-spacing: 0.5px;
+}
+
+/* ---------- Estus Flask ---------- */
+#estus-container {
+    position: absolute;
+    bottom: 30px;
+    left: 30px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--souls-ember);
+    border-radius: 4px;
+    padding: 8px 14px;
+    pointer-events: none;
+}
+
+#estus-icon {
+    font-size: 28px;
+    filter: drop-shadow(0 0 6px rgba(230, 126, 34, 0.6));
+}
+
+#estus-count {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--souls-ember);
+    text-shadow: 0 0 8px rgba(230, 126, 34, 0.4);
+}
+
+/* ---------- Lock-on Indicator ---------- */
+#lock-on-indicator {
+    position: fixed;
+    width: 50px;
+    height: 50px;
+    pointer-events: none;
+    z-index: 15;
+    transform: translate(-50%, -50%);
+}
+
+.lock-on-ring {
+    position: absolute;
+    inset: 0;
+    border: 2px solid var(--souls-gold);
+    border-radius: 50%;
+    animation: lockOnSpin 2s linear infinite;
+    opacity: 0.8;
+}
+
+.lock-on-ring.inner {
+    inset: 8px;
+    border-color: var(--souls-ember);
+    animation-direction: reverse;
+    animation-duration: 1.5s;
+}
+
+@keyframes lockOnSpin {
+    0% { transform: rotate(0deg); border-style: dashed; }
+    100% { transform: rotate(360deg); border-style: dashed; }
+}
+
+/* ---------- Boss Bar ---------- */
+#boss-bar-container {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(500px, 80vw);
+    text-align: center;
+    pointer-events: none;
+}
+
+#boss-name {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--souls-gold);
+    text-shadow: 0 0 10px rgba(212, 168, 67, 0.5);
+    margin-bottom: 6px;
+    letter-spacing: 3px;
+}
+
+/* ---------- Interaction Prompt ---------- */
+#interaction-prompt {
+    position: absolute;
+    bottom: 160px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.75);
+    border: 1px solid var(--souls-gold-dim);
+    border-radius: 4px;
+    padding: 10px 20px;
+    pointer-events: none;
+    animation: promptPulse 2s ease-in-out infinite;
+}
+
+@keyframes promptPulse {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
+}
+
+.prompt-key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: var(--souls-gold-dim);
+    border: 1px solid var(--souls-gold);
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 14px;
+    color: #fff;
+}
+
+.prompt-text {
+    font-size: 14px;
+    color: var(--souls-gold);
+    font-weight: 600;
+}
+
+/* ---------- Controls Hint ---------- */
+#controls-hint {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 16px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.35);
+    pointer-events: none;
+    letter-spacing: 0.5px;
+}
+
+/* ---------- Minimap ---------- */
+#minimap {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 150px;
+    height: 150px;
+    border: 2px solid rgba(212, 168, 67, 0.3);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+}
+
+/* ---------- Title Screen ---------- */
+#title-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: radial-gradient(ellipse at center bottom, #1a0a00 0%, #0a0a0a 60%, #000 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.title-content {
+    text-align: center;
+    position: relative;
+    z-index: 2;
+}
+
+.title-ember {
+    position: absolute;
+    top: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(230, 126, 34, 0.15) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: emberGlow 3s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes emberGlow {
+    0%, 100% { opacity: 0.5; transform: translateX(-50%) scale(1); }
+    50% { opacity: 1; transform: translateX(-50%) scale(1.1); }
+}
+
+.title-text {
+    font-family: var(--font-display);
+    font-size: clamp(48px, 10vw, 90px);
+    font-weight: 900;
+    color: #ddd;
+    letter-spacing: 12px;
+    line-height: 1;
+    text-shadow: 0 0 40px rgba(212, 168, 67, 0.3);
+}
+
+.title-accent {
+    color: var(--souls-gold);
+    font-size: 1.1em;
+    text-shadow: 0 0 30px rgba(212, 168, 67, 0.5), 0 0 60px rgba(230, 126, 34, 0.2);
+}
+
+.title-subtitle {
+    font-family: var(--font-display);
+    font-size: clamp(12px, 2vw, 18px);
+    color: rgba(212, 168, 67, 0.6);
+    letter-spacing: 6px;
+    margin-top: 16px;
+    text-transform: uppercase;
+}
+
+/* ---------- Souls Button ---------- */
+.souls-btn {
+    position: relative;
+    display: inline-block;
+    margin-top: 50px;
+    padding: 14px 48px;
+    background: transparent;
+    border: 1px solid var(--souls-gold-dim);
+    color: var(--souls-gold);
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.4s ease;
+}
+
+.souls-btn:hover {
+    border-color: var(--souls-gold);
+    color: #fff;
+    background: rgba(212, 168, 67, 0.1);
+    box-shadow: 0 0 30px rgba(212, 168, 67, 0.2), inset 0 0 30px rgba(212, 168, 67, 0.05);
+}
+
+.souls-btn:active {
+    transform: scale(0.97);
+}
+
+.btn-glow {
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(90deg, transparent, rgba(212, 168, 67, 0.1), transparent);
+    animation: btnGlowSweep 3s ease-in-out infinite;
+}
+
+@keyframes btnGlowSweep {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.title-controls {
+    margin-top: 40px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.25);
+    line-height: 2;
+    letter-spacing: 1px;
+}
+
+/* ---------- Death Screen ---------- */
+#death-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(5, 0, 0, 0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.death-text {
+    font-family: var(--font-display);
+    font-size: clamp(40px, 8vw, 80px);
+    font-weight: 900;
+    color: var(--souls-red-bright);
+    letter-spacing: 16px;
+    text-shadow: 0 0 40px rgba(192, 57, 43, 0.6), 0 0 80px rgba(139, 32, 32, 0.3);
+    animation: deathFade 2s ease-in forwards;
+}
+
+@keyframes deathFade {
+    0% { opacity: 0; transform: scale(0.8); letter-spacing: 40px; }
+    100% { opacity: 1; transform: scale(1); letter-spacing: 16px; }
+}
+
+.death-btn {
+    margin-top: 40px;
+    border-color: var(--souls-red-bright);
+    color: var(--souls-red-bright);
+}
+
+.death-btn:hover {
+    border-color: #e74c3c;
+    color: #fff;
+    background: rgba(192, 57, 43, 0.15);
+    box-shadow: 0 0 30px rgba(192, 57, 43, 0.3);
+}
+
+.death-content {
+    text-align: center;
+}
+
+/* ---------- Victory Screen ---------- */
+#victory-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(10, 5, 0, 0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.victory-content {
+    text-align: center;
+}
+
+.victory-text {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 5vw, 56px);
+    font-weight: 900;
+    color: var(--souls-gold);
+    letter-spacing: 8px;
+    text-shadow: 0 0 40px rgba(212, 168, 67, 0.6), 0 0 80px rgba(230, 126, 34, 0.3);
+    animation: victoryFade 3s ease-in forwards;
+}
+
+.victory-sub {
+    font-family: var(--font-display);
+    font-size: 16px;
+    color: rgba(212, 168, 67, 0.6);
+    letter-spacing: 4px;
+    margin-top: 20px;
+}
+
+@keyframes victoryFade {
+    0% { opacity: 0; transform: translateY(30px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+.victory-btn {
+    border-color: var(--souls-gold);
+}
+
+/* ---------- Loading Screen ---------- */
+#loading-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading-content {
+    text-align: center;
+}
+
+.loading-spinner {
+    width: 48px;
+    height: 48px;
+    border: 3px solid rgba(212, 168, 67, 0.2);
+    border-top-color: var(--souls-gold);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-text {
+    font-family: var(--font-display);
+    font-size: 14px;
+    color: rgba(212, 168, 67, 0.6);
+    letter-spacing: 4px;
+}
+
+/* ---------- Damage Flash ---------- */
+#damage-flash {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(139, 0, 0, 0.4), transparent 70%);
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+
+/* ---------- Crosshair ---------- */
+#crosshair {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 11;
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.2);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 600px) {
+    #player-stats {
+        width: 200px;
+        top: 15px;
+        left: 15px;
+    }
+
+    .stat-bar-bg {
+        height: 16px;
+    }
+
+    .stat-text {
+        font-size: 9px;
+    }
+
+    #boss-bar-container {
+        width: 90vw;
+        bottom: 60px;
+    }
+
+    #controls-hint {
+        display: none;
+    }
+
+    #minimap {
+        width: 100px;
+        height: 100px;
+    }
+}
