@@ -90,6 +90,7 @@ let inputState = {
 };
 let isPointerLocked = false;
 let minimapCtx;
+let isLevelUpMenuOpen = false;
 
 // ─── DOM REFS ───────────────────────────────────────────────────
 const DOM = {};
@@ -105,6 +106,10 @@ window.addEventListener('DOMContentLoaded', () => {
     DOM.startBtn.addEventListener('click', startGame);
     DOM.respawnBtn.addEventListener('click', respawnPlayer);
     DOM.restartBtn.addEventListener('click', restartGame);
+    if (DOM.btnVit) DOM.btnVit.addEventListener('click', () => levelUpStat('vitality'));
+    if (DOM.btnEnd) DOM.btnEnd.addEventListener('click', () => levelUpStat('endurance'));
+    if (DOM.btnStr) DOM.btnStr.addEventListener('click', () => levelUpStat('strength'));
+    if (DOM.levelUpCloseBtn) DOM.levelUpCloseBtn.addEventListener('click', closeLevelUpMenu);
 });
 
 function cacheDom() {
@@ -130,6 +135,26 @@ function cacheDom() {
     DOM.startBtn = document.getElementById('start-btn');
     DOM.respawnBtn = document.getElementById('respawn-btn');
     DOM.restartBtn = document.getElementById('restart-btn');
+    DOM.soulsContainer = document.getElementById('souls-container');
+    DOM.soulsCount = document.getElementById('souls-count');
+    DOM.levelUpMenu = document.getElementById('level-up-menu');
+    DOM.levelUpSoulsCount = document.getElementById('levelup-souls-count');
+    DOM.vitLevel = document.getElementById('vit-level');
+    DOM.vitNext = document.getElementById('vit-next');
+    DOM.vitEffect = document.getElementById('vit-effect');
+    DOM.vitCost = document.getElementById('vit-cost');
+    DOM.btnVit = document.getElementById('btn-vit');
+    DOM.endLevel = document.getElementById('end-level');
+    DOM.endNext = document.getElementById('end-next');
+    DOM.endEffect = document.getElementById('end-effect');
+    DOM.endCost = document.getElementById('end-cost');
+    DOM.btnEnd = document.getElementById('btn-end');
+    DOM.strLevel = document.getElementById('str-level');
+    DOM.strNext = document.getElementById('str-next');
+    DOM.strEffect = document.getElementById('str-effect');
+    DOM.strCost = document.getElementById('str-cost');
+    DOM.btnStr = document.getElementById('btn-str');
+    DOM.levelUpCloseBtn = document.getElementById('levelup-close-btn');
     minimapCtx = DOM.minimap.getContext('2d');
 }
 
@@ -181,6 +206,13 @@ function initThree() {
 // ─── INPUT ──────────────────────────────────────────────────────
 function initInput() {
     document.addEventListener('keydown', (e) => {
+        if (isLevelUpMenuOpen) {
+            if (e.code === 'Escape' || e.code === 'KeyE') {
+                e.preventDefault();
+                closeLevelUpMenu();
+            }
+            return;
+        }
         if (gameState !== 'playing') return;
         switch (e.code) {
             case 'KeyW': inputState.forward = true; break;
@@ -210,7 +242,7 @@ function initInput() {
     });
 
     document.addEventListener('mousedown', (e) => {
-        if (gameState !== 'playing') return;
+        if (gameState !== 'playing' || isLevelUpMenuOpen) return;
         if (e.button === 0) {
             if (!isPointerLocked) {
                 DOM.container.requestPointerLock();
@@ -221,7 +253,7 @@ function initInput() {
     });
 
     document.addEventListener('mousemove', (e) => {
-        if (!isPointerLocked) return;
+        if (!isPointerLocked || isLevelUpMenuOpen) return;
         inputState.mouseDX += e.movementX;
         inputState.mouseDY += e.movementY;
     });
@@ -459,6 +491,13 @@ function createPlayer() {
         stamina: PLAYER.MAX_STAMINA,
         maxStamina: PLAYER.MAX_STAMINA,
         estus: PLAYER.ESTUS_COUNT,
+        souls: 100,
+        stats: {
+            vitality: 1,
+            endurance: 1,
+            strength: 1
+        },
+        attackDamage: PLAYER.ATTACK_DAMAGE,
         position: new THREE.Vector3(WORLD.BONFIRE_POS.x + 0.5, 2, WORLD.BONFIRE_POS.z - 2 + 0.5),
         velocity: new THREE.Vector3(),
         yaw: 0,
@@ -736,6 +775,7 @@ function restartGame() {
 }
 
 function playerDied() {
+    if (isLevelUpMenuOpen) closeLevelUpMenu();
     gameState = 'dead';
     document.exitPointerLock();
     DOM.deathScreen.classList.remove('hidden');
@@ -743,6 +783,10 @@ function playerDied() {
 
 function bossDefeated() {
     gameState = 'victory';
+    if (player) {
+        player.souls = (player.souls || 0) + 1000;
+        updateUI();
+    }
     document.exitPointerLock();
     setTimeout(() => {
         DOM.victoryScreen.classList.remove('hidden');
@@ -769,6 +813,18 @@ function isBlocked(x, y, z) {
 function updatePlayer(dt) {
     if (gameState !== 'playing') return;
     const p = player;
+
+    if (isLevelUpMenuOpen) {
+        inputState.forward = false;
+        inputState.backward = false;
+        inputState.left = false;
+        inputState.right = false;
+        inputState.attack = false;
+        inputState.dodge = false;
+        inputState.useEstus = false;
+        inputState.mouseDX = 0;
+        inputState.mouseDY = 0;
+    }
 
     // --- Mouse look ---
     const sensitivity = 0.002;
@@ -859,7 +915,8 @@ function updatePlayer(dt) {
             if (boss && boss.hp > 0) {
                 const dist = p.position.distanceTo(boss.position);
                 if (dist < PLAYER.ATTACK_RANGE + 1.5) {
-                    const dmg = PLAYER.ATTACK_DAMAGE + (p.comboCount === 2 ? 5 : 0);
+                    const baseDmg = p.attackDamage || PLAYER.ATTACK_DAMAGE;
+                    const dmg = baseDmg + (p.comboCount === 2 ? 5 : 0);
                     damageBoss(dmg);
                 }
             }
@@ -967,18 +1024,30 @@ function updatePlayer(dt) {
 
     // --- Bonfire interaction ---
     const bonfireDist = p.position.distanceTo(bonfire.position);
-    if (bonfireDist < 3) {
-        DOM.interactionPrompt.classList.remove('hidden');
+    if (bonfireDist < 3.2) {
+        if (!isLevelUpMenuOpen) {
+            DOM.interactionPrompt.classList.remove('hidden');
+        } else {
+            DOM.interactionPrompt.classList.add('hidden');
+        }
         if (inputState.interact) {
-            p.hp = p.maxHp;
-            p.stamina = p.maxStamina;
-            p.estus = PLAYER.ESTUS_COUNT;
-            spawnParticles(bonfire.position.x, bonfire.position.y + 1, bonfire.position.z, 0xff6600, 30, 1);
+            if (isLevelUpMenuOpen) {
+                closeLevelUpMenu();
+            } else {
+                p.hp = p.maxHp;
+                p.stamina = p.maxStamina;
+                p.estus = PLAYER.ESTUS_COUNT;
+                spawnParticles(bonfire.position.x, bonfire.position.y + 1, bonfire.position.z, 0xff6600, 30, 1);
+                openLevelUpMenu();
+            }
             inputState.interact = false;
         }
     } else {
         DOM.interactionPrompt.classList.add('hidden');
         inputState.interact = false;
+        if (isLevelUpMenuOpen && bonfireDist > 4.5) {
+            closeLevelUpMenu();
+        }
     }
 
     // --- Camera ---
@@ -1292,6 +1361,11 @@ function damageBoss(amount) {
     boss.hitCooldown = 0.2;
     boss.staggerCount++;
 
+    // Award souls per hit
+    if (player) {
+        player.souls = (player.souls || 0) + 15;
+    }
+
     // Particles
     spawnParticles(
         boss.position.x + (Math.random() - 0.5) * 2,
@@ -1412,9 +1486,112 @@ function updateBonfireEffects(dt) {
     }
 }
 
+// ─── LEVEL UP SYSTEM ────────────────────────────────────────────
+function getStatUpgradeCost(stat) {
+    if (!player || !player.stats) return 40;
+    return 40 + (player.stats[stat] - 1) * 25;
+}
+
+function openLevelUpMenu() {
+    if (isLevelUpMenuOpen) return;
+    isLevelUpMenuOpen = true;
+    document.exitPointerLock();
+    updateLevelUpUI();
+    DOM.levelUpMenu.classList.remove('hidden');
+}
+
+function closeLevelUpMenu() {
+    if (!isLevelUpMenuOpen) return;
+    isLevelUpMenuOpen = false;
+    DOM.levelUpMenu.classList.add('hidden');
+    if (gameState === 'playing') {
+        DOM.container.requestPointerLock();
+    }
+}
+
+function levelUpStat(stat) {
+    if (!player || !player.stats) return;
+    const cost = getStatUpgradeCost(stat);
+    if (player.souls < cost) return;
+
+    player.souls -= cost;
+    player.stats[stat]++;
+
+    if (stat === 'vitality') {
+        const newMaxHp = 100 + (player.stats.vitality - 1) * 15;
+        const diff = newMaxHp - player.maxHp;
+        player.maxHp = newMaxHp;
+        player.hp = Math.min(player.maxHp, player.hp + diff);
+    } else if (stat === 'endurance') {
+        const newMaxStamina = 120 + (player.stats.endurance - 1) * 15;
+        const diff = newMaxStamina - player.maxStamina;
+        player.maxStamina = newMaxStamina;
+        player.stamina = Math.min(player.maxStamina, player.stamina + diff);
+    } else if (stat === 'strength') {
+        player.attackDamage = 12 + (player.stats.strength - 1) * 4;
+    }
+
+    // Golden soul sparks
+    spawnParticles(player.position.x, player.position.y + 1, player.position.z, 0xffd700, 30, 0.8);
+    if (bonfire) {
+        spawnParticles(bonfire.position.x, bonfire.position.y + 1, bonfire.position.z, 0xffaa00, 20, 0.6);
+    }
+
+    updateLevelUpUI();
+    updateUI();
+}
+
+function updateLevelUpUI() {
+    if (!player || !player.stats) return;
+
+    if (DOM.levelUpSoulsCount) DOM.levelUpSoulsCount.textContent = player.souls;
+
+    // Vitality
+    const vitLvl = player.stats.vitality;
+    const vitCost = getStatUpgradeCost('vitality');
+    const curHp = 100 + (vitLvl - 1) * 15;
+    const nextHp = 100 + vitLvl * 15;
+    if (DOM.vitLevel) DOM.vitLevel.textContent = vitLvl;
+    if (DOM.vitNext) DOM.vitNext.textContent = vitLvl + 1;
+    if (DOM.vitEffect) DOM.vitEffect.textContent = `HP: ${curHp} → ${nextHp}`;
+    if (DOM.vitCost) DOM.vitCost.textContent = vitCost;
+    if (DOM.btnVit) DOM.btnVit.disabled = player.souls < vitCost;
+
+    // Endurance
+    const endLvl = player.stats.endurance;
+    const endCost = getStatUpgradeCost('endurance');
+    const curStam = 120 + (endLvl - 1) * 15;
+    const nextStam = 120 + endLvl * 15;
+    if (DOM.endLevel) DOM.endLevel.textContent = endLvl;
+    if (DOM.endNext) DOM.endNext.textContent = endLvl + 1;
+    if (DOM.endEffect) DOM.endEffect.textContent = `STA: ${curStam} → ${nextStam}`;
+    if (DOM.endCost) DOM.endCost.textContent = endCost;
+    if (DOM.btnEnd) DOM.btnEnd.disabled = player.souls < endCost;
+
+    // Strength
+    const strLvl = player.stats.strength;
+    const strCost = getStatUpgradeCost('strength');
+    const curAtk = 12 + (strLvl - 1) * 4;
+    const nextAtk = 12 + strLvl * 4;
+    if (DOM.strLevel) DOM.strLevel.textContent = strLvl;
+    if (DOM.strNext) DOM.strNext.textContent = strLvl + 1;
+    if (DOM.strEffect) DOM.strEffect.textContent = `ATK: ${curAtk} → ${nextAtk}`;
+    if (DOM.strCost) DOM.strCost.textContent = strCost;
+    if (DOM.btnStr) DOM.btnStr.disabled = player.souls < strCost;
+}
+
+// Global exposure for inline onclick handlers in HTML
+window.levelUpStat = levelUpStat;
+window.closeLevelUpMenu = closeLevelUpMenu;
+window.openLevelUpMenu = openLevelUpMenu;
+
 // ─── UI UPDATE ──────────────────────────────────────────────────
 function updateUI() {
     if (gameState !== 'playing') return;
+
+    if (DOM.soulsCount && player) {
+        DOM.soulsCount.textContent = player.souls !== undefined ? player.souls : 0;
+    }
 
     const hpPct = (player.hp / player.maxHp) * 100;
     const stPct = (player.stamina / player.maxStamina) * 100;

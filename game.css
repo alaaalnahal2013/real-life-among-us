@@ -171,6 +171,44 @@ html, body {
     text-shadow: 0 0 8px rgba(230, 126, 34, 0.4);
 }
 
+/* ---------- Souls Counter (HUD) ---------- */
+#souls-container {
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(5, 5, 8, 0.75);
+    border: 1px solid rgba(212, 168, 67, 0.4);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(212, 168, 67, 0.08);
+    border-radius: 4px;
+    padding: 8px 16px;
+    pointer-events: none;
+    z-index: 20;
+}
+
+#souls-icon {
+    font-size: 20px;
+    color: var(--souls-gold);
+    text-shadow: 0 0 10px rgba(212, 168, 67, 0.8);
+    animation: soulsGlow 2.5s ease-in-out infinite alternate;
+}
+
+#souls-count {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    color: #f5eedb;
+    letter-spacing: 2px;
+    text-shadow: 0 0 8px rgba(212, 168, 67, 0.5);
+}
+
+@keyframes soulsGlow {
+    0% { transform: scale(0.95); opacity: 0.8; }
+    100% { transform: scale(1.1); opacity: 1; filter: drop-shadow(0 0 8px #ffd700); }
+}
+
 /* ---------- Lock-on Indicator ---------- */
 #lock-on-indicator {
     position: fixed;
@@ -277,6 +315,196 @@ html, body {
     color: rgba(255, 255, 255, 0.35);
     pointer-events: none;
     letter-spacing: 0.5px;
+}
+
+/* ---------- Level Up Menu ---------- */
+#level-up-menu {
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    background: radial-gradient(circle at center, rgba(16, 12, 18, 0.92) 0%, rgba(5, 5, 8, 0.98) 100%);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    animation: menuFadeIn 0.25s ease-out;
+}
+
+@keyframes menuFadeIn {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.levelup-panel {
+    background: linear-gradient(180deg, rgba(22, 18, 25, 0.95) 0%, rgba(12, 10, 15, 0.98) 100%);
+    border: 1px solid rgba(212, 168, 67, 0.4);
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.9), 0 0 30px rgba(212, 168, 67, 0.15), inset 0 0 20px rgba(0, 0, 0, 0.8);
+    border-radius: 6px;
+    padding: 32px 36px;
+    width: min(540px, 92vw);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: relative;
+}
+
+.levelup-title {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 900;
+    color: var(--souls-gold);
+    letter-spacing: 6px;
+    text-align: center;
+    text-shadow: 0 0 20px rgba(212, 168, 67, 0.5);
+    border-bottom: 1px solid rgba(212, 168, 67, 0.25);
+    padding-bottom: 14px;
+}
+
+.levelup-souls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(212, 168, 67, 0.2);
+    border-radius: 4px;
+    padding: 10px 16px;
+}
+
+.levelup-souls-icon {
+    font-size: 22px;
+    color: var(--souls-gold);
+    text-shadow: 0 0 10px rgba(212, 168, 67, 0.8);
+}
+
+#levelup-souls-count {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 2px;
+}
+
+.levelup-souls-label {
+    font-family: var(--font-display);
+    font-size: 13px;
+    color: rgba(212, 168, 67, 0.7);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.levelup-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.levelup-stat-row {
+    display: grid;
+    grid-template-columns: 1.4fr 0.9fr 1.3fr auto;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 4px;
+    padding: 12px 14px;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.levelup-stat-row:hover {
+    background: rgba(212, 168, 67, 0.04);
+    border-color: rgba(212, 168, 67, 0.3);
+}
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.stat-name {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    color: #e5ded0;
+    letter-spacing: 2px;
+}
+
+.stat-desc {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.stat-level {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-display);
+    font-size: 14px;
+}
+
+.stat-current {
+    font-weight: 700;
+    color: #fff;
+}
+
+.stat-arrow {
+    color: rgba(212, 168, 67, 0.6);
+    font-size: 12px;
+}
+
+.stat-next {
+    font-weight: 700;
+    color: var(--souls-gold);
+    text-shadow: 0 0 6px rgba(212, 168, 67, 0.4);
+}
+
+.stat-effect {
+    font-family: var(--font-ui);
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.65);
+    white-space: nowrap;
+}
+
+.levelup-btn {
+    background: rgba(212, 168, 67, 0.12);
+    border: 1px solid var(--souls-gold);
+    color: var(--souls-gold);
+    border-radius: 3px;
+    padding: 6px 14px;
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    outline: none;
+}
+
+.levelup-btn:hover:not(:disabled) {
+    background: var(--souls-gold);
+    color: #000;
+    box-shadow: 0 0 15px rgba(212, 168, 67, 0.5);
+    transform: translateY(-1px);
+}
+
+.levelup-btn:disabled {
+    opacity: 0.35;
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.2);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.levelup-close {
+    align-self: center;
+    margin-top: 6px;
+    padding: 10px 40px;
 }
 
 /* ---------- Minimap ---------- */
@@ -577,5 +805,16 @@ html, body {
     #minimap {
         width: 100px;
         height: 100px;
+    }
+
+    #souls-container {
+        bottom: 20px;
+        right: 15px;
+        padding: 6px 10px;
+    }
+
+    .levelup-stat-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
     }
 }

@@ -38,6 +38,12 @@
             <span id="estus-count">5</span>
         </div>
 
+        <!-- Souls Counter -->
+        <div id="souls-container">
+            <div id="souls-icon">✦</div>
+            <span id="souls-count">0</span>
+        </div>
+
         <!-- Lock-on Indicator -->
         <div id="lock-on-indicator" class="hidden">
             <div class="lock-on-ring"></div>
@@ -57,6 +63,68 @@
         <div id="interaction-prompt" class="hidden">
             <span class="prompt-key">E</span>
             <span class="prompt-text">Rest at Bonfire</span>
+        </div>
+
+        <!-- Level Up Menu -->
+        <div id="level-up-menu" class="hidden">
+            <div class="levelup-panel">
+                <h2 class="levelup-title">LEVEL UP</h2>
+                <div class="levelup-souls">
+                    <span class="levelup-souls-icon">✦</span>
+                    <span id="levelup-souls-count">0</span>
+                    <span class="levelup-souls-label">Souls</span>
+                </div>
+                <div class="levelup-stats">
+                    <div class="levelup-stat-row" id="stat-vitality">
+                        <div class="stat-info">
+                            <span class="stat-name">VITALITY</span>
+                            <span class="stat-desc">Increases max HP</span>
+                        </div>
+                        <div class="stat-level">
+                            <span class="stat-current" id="vit-level">1</span>
+                            <span class="stat-arrow">→</span>
+                            <span class="stat-next" id="vit-next">2</span>
+                        </div>
+                        <div class="stat-effect" id="vit-effect">HP: 100 → 115</div>
+                        <button class="levelup-btn" id="btn-vit" onclick="levelUpStat('vitality')">
+                            <span class="btn-cost" id="vit-cost">50</span> ✦
+                        </button>
+                    </div>
+                    <div class="levelup-stat-row" id="stat-endurance">
+                        <div class="stat-info">
+                            <span class="stat-name">ENDURANCE</span>
+                            <span class="stat-desc">Increases max Stamina</span>
+                        </div>
+                        <div class="stat-level">
+                            <span class="stat-current" id="end-level">1</span>
+                            <span class="stat-arrow">→</span>
+                            <span class="stat-next" id="end-next">2</span>
+                        </div>
+                        <div class="stat-effect" id="end-effect">STA: 120 → 130</div>
+                        <button class="levelup-btn" id="btn-end" onclick="levelUpStat('endurance')">
+                            <span class="btn-cost" id="end-cost">50</span> ✦
+                        </button>
+                    </div>
+                    <div class="levelup-stat-row" id="stat-strength">
+                        <div class="stat-info">
+                            <span class="stat-name">STRENGTH</span>
+                            <span class="stat-desc">Increases attack damage</span>
+                        </div>
+                        <div class="stat-level">
+                            <span class="stat-current" id="str-level">1</span>
+                            <span class="stat-arrow">→</span>
+                            <span class="stat-next" id="str-next">2</span>
+                        </div>
+                        <div class="stat-effect" id="str-effect">ATK: 12 → 15</div>
+                        <button class="levelup-btn" id="btn-str" onclick="levelUpStat('strength')">
+                            <span class="btn-cost" id="str-cost">50</span> ✦
+                        </button>
+                    </div>
+                </div>
+                <button class="souls-btn levelup-close" id="levelup-close-btn" onclick="closeLevelUpMenu()">
+                    <span class="btn-text">DONE</span>
+                </button>
+            </div>
         </div>
 
         <!-- Controls hint -->
